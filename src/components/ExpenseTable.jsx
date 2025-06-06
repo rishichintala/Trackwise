@@ -272,9 +272,9 @@ export default function ExpenseTable() {
     setEditing(null);
   };
 
-  // ✅ Format date correctly in user's local timezone
+  // Format a stored date string ("YYYY-MM-DDT12:00:00") into local display
   const formatDate = (dateString) => {
-    const localDate = new Date(dateString);
+    const localDate = new Date(dateString); // parsed as local
     return localDate.toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
@@ -297,7 +297,8 @@ export default function ExpenseTable() {
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <div className="flex items-center gap-2 font-medium text-gray-800">
-                  {categoryIcons[exp.category] || categoryIcons["Miscellaneous"]}
+                  {categoryIcons[exp.category] ||
+                    categoryIcons["Miscellaneous"]}
                   {exp.category}
                 </div>
                 <div className="text-sm text-gray-500">
@@ -358,6 +359,7 @@ export default function ExpenseTable() {
               Edit Expense
             </h2>
 
+            {/* Amount Input */}
             <div>
               <label className="text-sm text-gray-600">Amount</label>
               <div className="mt-1 flex items-center space-x-2 border rounded p-2 bg-gray-50">
@@ -373,6 +375,7 @@ export default function ExpenseTable() {
               </div>
             </div>
 
+            {/* Category Dropdown */}
             <div>
               <label className="text-sm text-gray-600">Category</label>
               <select
@@ -390,17 +393,20 @@ export default function ExpenseTable() {
               </select>
             </div>
 
-            {/* ✅ Date Picker with 12PM correction */}
+            {/* Date Picker (store as local midday) */}
             <div>
               <label className="text-sm text-gray-600">Date</label>
               <DatePicker
                 selected={new Date(editing.date)}
                 onChange={(date) => {
-                  const noonDate = new Date(date);
-                  noonDate.setHours(12, 0, 0, 0);
+                  const yyyy = date.getFullYear();
+                  const mm = String(date.getMonth() + 1).padStart(2, "0");
+                  const dd = String(date.getDate()).padStart(2, "0");
+                  const localMidday = `${yyyy}-${mm}-${dd}T12:00:00`;
+
                   setEditing({
                     ...editing,
-                    date: noonDate.toISOString().split("T")[0],
+                    date: localMidday,
                   });
                 }}
                 className="w-full border p-2 rounded bg-gray-50 text-gray-800 mt-1"

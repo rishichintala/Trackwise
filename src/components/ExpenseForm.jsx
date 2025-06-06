@@ -263,18 +263,22 @@ export default function ExpenseForm() {
       return;
     }
 
-    // ✅ Set time to noon to prevent timezone offset issues
-    const localDate = new Date(form.date);
-    localDate.setHours(12, 0, 0, 0);
+    // ─── Build a local date at midnight (user picks only Y-M-D) ───
+    const picked = form.date;
+    const yyyy = picked.getFullYear();
+    const mm = String(picked.getMonth() + 1).padStart(2, "0");
+    const dd = String(picked.getDate()).padStart(2, "0");
+
+    // Append 'T12:00:00' so JS will parse as local midday (no shift)
+    const dateString = `${yyyy}-${mm}-${dd}T12:00:00`;
 
     const newExpense = {
       ...form,
       amount: Number(form.amount),
-      date: localDate.toISOString().split("T")[0], // "YYYY-MM-DD"
+      date: dateString, 
       id: Date.now(),
     };
 
-    // Budget alerts
     const categoryExpenses = expenses
       .filter((e) => e.category === form.category)
       .reduce((acc, e) => acc + Number(e.amount), 0);
@@ -358,7 +362,7 @@ export default function ExpenseForm() {
             </select>
           </div>
 
-          {/* ✅ Date Picker */}
+          {/* Date */}
           <div>
             <label className="text-sm text-gray-600">Date</label>
             <DatePicker
@@ -371,7 +375,7 @@ export default function ExpenseForm() {
           </div>
         </div>
 
-        {/* Submit button */}
+        {/* Submit */}
         <div className="flex justify-end pt-2">
           <button
             type="submit"

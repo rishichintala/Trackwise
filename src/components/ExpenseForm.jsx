@@ -204,7 +204,6 @@
 
 
 
-
 import { useState } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
@@ -264,20 +263,18 @@ export default function ExpenseForm() {
       return;
     }
 
-    // ✅ FIXED: Create local date at midnight to avoid timezone issues
-    const localDate = new Date(
-      form.date.getFullYear(),
-      form.date.getMonth(),
-      form.date.getDate()
-    );
+    // ✅ Set time to noon to prevent timezone offset issues
+    const localDate = new Date(form.date);
+    localDate.setHours(12, 0, 0, 0);
 
     const newExpense = {
       ...form,
       amount: Number(form.amount),
-      date: localDate.toISOString().split("T")[0],
+      date: localDate.toISOString().split("T")[0], // "YYYY-MM-DD"
       id: Date.now(),
     };
 
+    // Budget alerts
     const categoryExpenses = expenses
       .filter((e) => e.category === form.category)
       .reduce((acc, e) => acc + Number(e.amount), 0);
@@ -291,9 +288,7 @@ export default function ExpenseForm() {
       totalWithNew >= 0.8 * relatedBudget.limit &&
       totalWithNew <= relatedBudget.limit
     ) {
-      toast(`⚠️ You’re nearing the budget limit for ${form.category}!`, {
-        icon: "⚠️",
-      });
+      toast(`⚠️ You’re nearing the budget limit for ${form.category}!`);
     }
 
     if (
@@ -301,9 +296,7 @@ export default function ExpenseForm() {
       relatedBudget.notify &&
       totalWithNew > relatedBudget.limit
     ) {
-      toast(`🚨 You’ve exceeded the budget for ${form.category}!`, {
-        icon: "🚨",
-      });
+      toast(`🚨 You’ve exceeded the budget for ${form.category}!`);
     }
 
     addExpense(newExpense);
@@ -331,17 +324,21 @@ export default function ExpenseForm() {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Amount */}
           <div>
             <label className="text-sm text-gray-600">Amount</label>
             <input
               type="number"
               className="w-full border p-2 rounded mt-1 disabled:opacity-50"
               value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, amount: e.target.value })
+              }
               disabled={!isIncomeSet}
             />
           </div>
 
+          {/* Category */}
           <div>
             <label className="text-sm text-gray-600">Category</label>
             <select
@@ -374,6 +371,7 @@ export default function ExpenseForm() {
           </div>
         </div>
 
+        {/* Submit button */}
         <div className="flex justify-end pt-2">
           <button
             type="submit"

@@ -1,0 +1,14 @@
+/* bring in both preflight + utilities in one line */
+@import "tailwindcss";
+html, body, #root {
+  @apply bg-gray-100;
+}
+/* (optional) your own component recipes */
+@layer components {
+  /* example button */
+  .btn-primary {
+    @apply inline-flex items-center gap-1 rounded
+           bg-blue-600 px-4 py-2 text-white
+           hover:bg-blue-700;
+  }
+}

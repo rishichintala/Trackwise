@@ -175,16 +175,11 @@ export default function ExpenseTable() {
             </div>
 
             {/* Date Picker */}
-            <div>
+
+            {/* <div>
               <label className="text-sm text-gray-600">Date</label>
               <DatePicker
                 selected={new Date(editing.date)}
-                // onChange={(date) =>
-                //   setEditing({
-                //     ...editing,
-                //     date: date.toISOString().split("T")[0],
-                //   })
-                // }
                 onChange={(date) => {
                   const localMidnight = new Date(
                     date.getFullYear(),
@@ -199,7 +194,23 @@ export default function ExpenseTable() {
                 className="w-full border p-2 rounded bg-gray-50 text-gray-800 mt-1"
                 maxDate={new Date()}
               />
-            </div>
+            </div> */}
+            {/* Date Picker */}
+<div>
+  <label className="text-sm text-gray-600">Date</label>
+  <DatePicker
+    selected={new Date(editing.date)}
+    onChange={(date) => {
+      setEditing({
+        ...editing,
+        date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+      });
+    }}
+    className="w-full border p-2 rounded bg-gray-50 text-gray-800 mt-1"
+    maxDate={new Date()}
+  />
+</div>
+
 
             {/* Save Button */}
             <div className="flex justify-end pt-2">

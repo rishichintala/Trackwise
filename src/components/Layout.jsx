@@ -70,6 +70,10 @@ export default function Layout({ children }) {
           {children}
         </div>
       </main>
+      {/* ========== FOOTER ========== */}
+      <footer className="bg-white text-center text-sm text-gray-500 py-4 border-t">
+        © 2025 Trackwise | Built with ❤️ by Sai Rishith Chintala
+      </footer>
     </div>
     
   );

@@ -196,20 +196,24 @@ export default function ExpenseTable() {
               />
             </div> */}
             {/* Date Picker */}
-<div>
+            <div>
   <label className="text-sm text-gray-600">Date</label>
   <DatePicker
     selected={new Date(editing.date)}
     onChange={(date) => {
+      const adjustedDate = new Date(date);
+      adjustedDate.setHours(12); // Prevent timezone shifting
+
       setEditing({
         ...editing,
-        date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+        date: `${adjustedDate.getFullYear()}-${String(adjustedDate.getMonth() + 1).padStart(2, "0")}-${String(adjustedDate.getDate()).padStart(2, "0")}`,
       });
     }}
     className="w-full border p-2 rounded bg-gray-50 text-gray-800 mt-1"
     maxDate={new Date()}
   />
 </div>
+
 
 
             {/* Save Button */}

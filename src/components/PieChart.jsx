@@ -1,120 +1,66 @@
-// import { Pie } from 'react-chartjs-2';
-// import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-// ChartJS.register(ArcElement, Tooltip, Legend);
+// src/components/PieChart.jsx
+import { useEffect, useRef } from "react";
+import Chart from "chart.js/auto";
 
-// export default function PieChart({ data }) {
-//   return <Pie data={{ labels: Object.keys(data), datasets: [{ data: Object.values(data) }] }} />;
-// }
+export default function PieChart({ labels, values, colors, currencySymbol }) {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
 
+  useEffect(() => {
+    if (!canvasRef.current) return;
 
-// import { Pie } from "react-chartjs-2";
-// import { Chart, ArcElement, Tooltip, Legend } from "chart.js";
+    // If a previous chart instance exists, destroy it first
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
 
-// Chart.register(ArcElement, Tooltip, Legend);
+    const ctx = canvasRef.current.getContext("2d");
 
-// export default function PieChart({ labels = [], data = [], backgroundColor = [] }) {
-//   const chartData = {
-//     labels,
-//     datasets: [
-//       {
-//         data, 
-//         backgroundColor,
-//         borderColor: "#fff",
-//         borderWidth: 2,
-//       },
-//     ],
-//   };
-
-//   const options = {
-//     responsive: true,
-//     plugins: {
-//       legend: {
-//         position: "bottom",
-//         labels: {
-//           boxWidth: 12,
-//           padding: 16,
-//         },
-//       },
-//       tooltip: {
-//         callbacks: {
-//           label: (ctx) => {
-//             const value = ctx.parsed;
-//             return `${ctx.label}: ${value.toLocaleString()}`;
-//           },
-//         },
-//       },
-//     },
-//   };
-
-//   return <Pie data={chartData} options={options} />;
-// }
-
-
-
-
-import React from "react";
-import { Pie } from "react-chartjs-2";
-import {
-  Chart,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import ChartDataLabels from "chartjs-plugin-datalabels";
-import { useCurrency } from "../context/CurrencyContext";
-
-// Register Chart.js components and the DataLabels plugin
-Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
-
-export default function PieChart({ labels = [], data = [], backgroundColor = [] }) {
-  const { currencySymbol } = useCurrency();
-
-  // Build the Chart.js data object
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        data,
-        backgroundColor,
-        borderColor: "#ffffff",
-        borderWidth: 2,
+    chartRef.current = new Chart(ctx, {
+      type: "pie",
+      data: {
+        // Embed label + amount into the slice label itself
+        labels: labels.map((lbl, idx) => {
+          const amt = values[idx] || 0;
+          return `${lbl} (${currencySymbol}${amt.toFixed(2)})`;
+        }),
+        datasets: [
+          {
+            data: values,
+            backgroundColor: colors,
+            borderWidth: 1,
+          },
+        ],
       },
-    ],
-  };
-
-  // Configure options to show labels on top of slices
-  const options = {
-    responsive: true,
-    plugins: {
-      // Keep the regular tooltip on hover
-      tooltip: {
-        callbacks: {
-          label: (ctx) => {
-            const value = ctx.parsed || 0;
-            return `${ctx.label}: ${currencySymbol}${value.toLocaleString()}`;
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, // Allow it to fill the parent’s height
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              boxWidth: 12,
+              font: {
+                size: 10, // shrink legend text so it doesn’t overflow on mobile
+              },
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const val = context.parsed;
+                return `${currencySymbol}${val.toFixed(2)}`;
+              },
+            },
           },
         },
       },
-      legend: {
-        position: "bottom",
-        labels: {
-          boxWidth: 12,
-          padding: 16,
-        },
-      },
-      // DataLabels plugin configuration
-      datalabels: {
-        color: "#ffffff",
-        formatter: (value, context) => {
-          // Show “₹1,234” (with your chosen currency symbol) on each slice
-          return `${currencySymbol}${value.toLocaleString()}`;
-        },
-        font: {
-          weight: "600",
-        },
-      },
-    },
-  };
+    });
+  }, [labels, values, colors, currencySymbol]);
 
-  return <Pie data={chartData} options={options} />;
+  return (
+    <div className="w-full h-64 sm:h-80">
+      <canvas ref={canvasRef} />
+    </div>
+  );
 }

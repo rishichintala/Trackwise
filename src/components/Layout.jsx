@@ -1,80 +1,138 @@
 // src/components/Layout.jsx
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 export default function Layout({ children }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* ========== NAV BAR ========== */}
-      <nav className="bg-white shadow-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          {/* You can put your brand/logo here */}
-          <div className="text-2xl font-bold text-gray-800">MyBudgetApp</div>
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      {/* ========== NAV BAR (responsive) ========== */}
+      <nav className="bg-white shadow-md">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* ─── Brand / Logo ─── */}
+            <div className="text-2xl font-bold text-gray-800">Trackwise</div>
 
-          {/* Simple navigation links */}
-          <div className="flex space-x-6">
-            <NavLink
-              to="/dashboard"
-              className={({ isActive }) =>
-                `text-gray-600 hover:text-blue-600 ${
-                  isActive ? "text-blue-600 font-medium" : ""
-                }`
-              }
-            >
-              Dashboard
-            </NavLink>
+            {/* ─── Desktop Menu (hidden on mobile) ─── */}
+            <div className="hidden sm:flex space-x-8">
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) =>
+                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${
+                    isActive ? "text-blue-600 font-medium" : ""
+                  }`
+                }
+              >
+                <span>Dashboard</span>
+              </NavLink>
+              <NavLink
+                to="/expenses"
+                className={({ isActive }) =>
+                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${
+                    isActive ? "text-blue-600 font-medium" : ""
+                  }`
+                }
+              >
+                <span>Expenses</span>
+              </NavLink>
+              <NavLink
+                to="/budgets"
+                className={({ isActive }) =>
+                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${
+                    isActive ? "text-blue-600 font-medium" : ""
+                  }`
+                }
+              >
+                <span>Budgets</span>
+              </NavLink>
+              <NavLink
+                to="/reports"
+                className={({ isActive }) =>
+                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${
+                    isActive ? "text-blue-600 font-medium" : ""
+                  }`
+                }
+              >
+                <span>Reports</span>
+              </NavLink>
+            </div>
 
-            <NavLink
-              to="/expenses"
-              className={({ isActive }) =>
-                `text-gray-600 hover:text-blue-600 ${
-                  isActive ? "text-blue-600 font-medium" : ""
-                }`
-              }
-            >
-              Expenses
-            </NavLink>
-
-            <NavLink
-              to="/budgets"
-              className={({ isActive }) =>
-                `text-gray-600 hover:text-blue-600 ${
-                  isActive ? "text-blue-600 font-medium" : ""
-                }`
-              }
-            >
-              Budgets
-            </NavLink>
-
-            <NavLink
-              to="/reports"
-              className={({ isActive }) =>
-                `text-gray-600 hover:text-blue-600 ${
-                  isActive ? "text-blue-600 font-medium" : ""
-                }`
-              }
-            >
-              Reports
-            </NavLink>
+            {/* ─── Mobile Hamburger Button (visible on small) ─── */}
+            <div className="sm:hidden">
+              <button
+                onClick={() => setMenuOpen((o) => !o)}
+                className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-blue-600 focus:outline-none"
+              >
+                {menuOpen ? (
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* ─── Mobile Menu (dropdown) ─── */}
+        {menuOpen && (
+          <div className="sm:hidden bg-white border-t border-gray-200">
+            <ul className="px-2 pt-2 pb-3 space-y-1">
+              {["dashboard", "expenses", "budgets", "reports"].map((route) => (
+                <li key={route}>
+                  <NavLink
+                    to={`/${route}`}
+                    onClick={() => setMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center space-x-1 px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 ${
+                        isActive ? "bg-gray-100 font-medium" : ""
+                      }`
+                    }
+                  >
+                    <span>
+                      {route.charAt(0).toUpperCase() + route.slice(1)}
+                    </span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </nav>
 
-      {/* ========== PAGE CONTENT AREA ========== */}
+      {/* ========== PAGE CONTENT ========== */}
       <main className="flex-1 w-full">
-        {/* 
-          Every “page” will be injected here as the value of `children`.
-          We wrap it in a max-width container with padding, so all pages
-          look consistent.
-        */}
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          {children}
-        </div>
+        <div className="max-w-6xl mx-auto px-6 py-8">{children}</div>
       </main>
-      {/* ========== FOOTER ========== */}
-      <footer className="bg-white text-center text-sm text-gray-500 py-4 border-t">
+
+      {/* ========== FOOTER (sticky bottom) ========== */}
+      <footer className="bg-white border-t text-center text-gray-500 text-sm py-4">
         © 2025 Trackwise | Built with ❤️ by Sai Rishith Chintala
       </footer>
     </div>
-    
   );
 }

@@ -1,171 +1,76 @@
-// import { Bar } from 'react-chartjs-2';
-// import {
-//   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend,
-// } from 'chart.js';
-// ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+// src/components/BarChart.jsx
+import { useEffect, useRef } from "react";
+import Chart from "chart.js/auto";
 
-// export default function BarChart({ labels, totals }) {
-//   return <Bar data={{ labels, datasets: [{ label: 'Total Spent', data: totals }] }} />;
-// }
+export default function BarChart({ labels, values, color, currencySymbol }) {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
 
+  useEffect(() => {
+    if (!canvasRef.current) return;
 
-// import { Bar } from "react-chartjs-2";
-// import {
-//   Chart,
-//   BarElement,
-//   CategoryScale,
-//   LinearScale,
-//   Tooltip,
-//   Legend,
-// } from "chart.js";
+    // Destroy previous instance if it exists
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
 
-// Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+    const ctx = canvasRef.current.getContext("2d");
 
-// export default function BarChart({ labels = [], totals = [], backgroundColor = "#9CA3AF" }) {
-//   const chartData = {
-//     labels,
-//     datasets: [
-//       {
-//         label: "Total Spent",
-//         data: totals,
-//         backgroundColor,
-//         borderRadius: 4,
-//         maxBarThickness: 40,
-//       },
-//     ],
-//   };
-
-//   const options = {
-//     responsive: true,
-//     scales: {
-//       x: {
-//         grid: { display: false },
-//         ticks: { color: "#4B5563" }, // gray-700
-//       },
-//       y: {
-//         beginAtZero: true,
-//         grid: {
-//           color: "#E5E7EB", // gray-200
-//           borderDash: [4, 2],
-//         },
-//         ticks: {
-//           color: "#4B5563", // gray-700
-//           callback: (value) => value.toLocaleString(),
-//         },
-//       },
-//     },
-//     plugins: {
-//       legend: {
-//         display: true,
-//         position: "bottom",
-//         labels: {
-//           boxWidth: 12,
-//         },
-//       },
-//       tooltip: {
-//         callbacks: {
-//           label: (ctx) => {
-//             const value = ctx.parsed.y;
-//             return `Total: ${value.toLocaleString()}`;
-//           },
-//         },
-//       },
-//     },
-//   };
-
-//   return <Bar data={chartData} options={options} />;
-// }
-
-
-
-
-import React from "react";
-import { Bar } from "react-chartjs-2";
-import {
-  Chart,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import ChartDataLabels from "chartjs-plugin-datalabels";
-import { useCurrency } from "../context/CurrencyContext";
-
-// Register Chart.js components and the DataLabels plugin
-Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels);
-
-export default function BarChart({
-  labels = [],
-  totals = [],
-  backgroundColor = "#9CA3AF",
-}) {
-  const { currencySymbol } = useCurrency();
-
-  // Build the Chart.js data object
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        label: "Total Spent",
-        data: totals,
-        backgroundColor,
-        borderRadius: 4,
-        maxBarThickness: 40,
+    chartRef.current = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Total Spent",
+            data: values,
+            backgroundColor: color,
+            borderWidth: 1,
+          },
+        ],
       },
-    ],
-  };
-
-  // Configure options to show labels on top of bars
-  const options = {
-    responsive: true,
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { color: "#4B5563" }, // gray-700
-      },
-      y: {
-        beginAtZero: true,
-        grid: {
-          color: "#E5E7EB", // gray-200
-          borderDash: [4, 2],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, // fill the parent’s height
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (val) => `${currencySymbol}${val}`, // prepend symbol
+              font: {
+                size: 11, // slightly smaller so numbers don’t crowd
+              },
+            },
+          },
+          x: {
+            ticks: {
+              font: {
+                size: 10, // shrink x-axis labels on small screens
+              },
+            },
+          },
         },
-        ticks: {
-          color: "#4B5563", // gray-700
-          callback: (value) => {
-            // Format the y-axis labels with currency symbol
-            return `${currencySymbol}${Number(value).toLocaleString()}`;
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const v = context.parsed.y;
+                return `${currencySymbol}${v.toFixed(2)}`;
+              },
+            },
           },
         },
       },
-    },
-    plugins: {
-      legend: {
-        display: false, // You can toggle this on if you want a legend
-      },
-      tooltip: {
-        callbacks: {
-          label: (ctx) => {
-            const value = ctx.parsed.y || 0;
-            return `Total: ${currencySymbol}${value.toLocaleString()}`;
-          },
-        },
-      },
-      // DataLabels plugin configuration
-      datalabels: {
-        anchor: "end",
-        align: "end",
-        color: "#374151", // gray-700 (dark text on bar)
-        formatter: (value, context) => {
-          return `${currencySymbol}${value.toLocaleString()}`;
-        },
-        font: {
-          weight: "500",
-          size: 12,
-        },
-      },
-    },
-  };
+    });
+  }, [labels, values, color, currencySymbol]);
 
-  return <Bar data={chartData} options={options} />;
+  return (
+    <div className="w-full h-64 sm:h-80">
+      <canvas ref={canvasRef} />
+    </div>
+  );
 }
+

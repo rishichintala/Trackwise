@@ -61,13 +61,22 @@ export default function ExpenseForm() {
       return;
     }
 
-    // Build the new expense object
-    const newExpense = {
-      ...form,
-      amount: Number(form.amount),
-      date: form.date.toISOString().split("T")[0],
-      id: Date.now(),
-    };
+    // // Build the new expense object
+    // const newExpense = {
+    //   ...form,
+    //   amount: Number(form.amount),
+    //   date: form.date.toISOString().split("T")[0],
+    //   id: Date.now(),
+    // };
+// Build the new expense object
+form.date.setHours(12); // Set time to noon to avoid timezone issues
+
+const newExpense = {
+  ...form,
+  amount: Number(form.amount),
+  date: `${form.date.getFullYear()}-${String(form.date.getMonth() + 1).padStart(2, "0")}-${String(form.date.getDate()).padStart(2, "0")}`,
+  id: Date.now(),
+};
 
     // Calculate total spent in this category so far (before adding)
     const categoryExpenses = expenses

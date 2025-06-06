@@ -179,12 +179,23 @@ export default function ExpenseTable() {
               <label className="text-sm text-gray-600">Date</label>
               <DatePicker
                 selected={new Date(editing.date)}
-                onChange={(date) =>
+                // onChange={(date) =>
+                //   setEditing({
+                //     ...editing,
+                //     date: date.toISOString().split("T")[0],
+                //   })
+                // }
+                onChange={(date) => {
+                  const localMidnight = new Date(
+                    date.getFullYear(),
+                    date.getMonth(),
+                    date.getDate()
+                  );
                   setEditing({
                     ...editing,
-                    date: date.toISOString().split("T")[0],
-                  })
-                }
+                    date: localMidnight.toISOString().split("T")[0],
+                  });
+                }}
                 className="w-full border p-2 rounded bg-gray-50 text-gray-800 mt-1"
                 maxDate={new Date()}
               />

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import toast from "react-hot-toast";
 import { v4 as uuid } from "uuid";
 import {
@@ -16,42 +18,58 @@ import {
   FaQuestion,
   FaTrash,
   FaEdit,
+  FaTags,
 } from "react-icons/fa";
 
 const categoryIcons = {
-  Food: <FaUtensils />,
-  Transport: <FaCar />,
-  Housing: <FaHome />,
-  Entertainment: <FaGamepad />,
-  Utilities: <FaBolt />,
-  Health: <FaHeartbeat />,
-  Shopping: <FaShoppingBag />,
-  Business: <FaBriefcase />,
-  Income: <FaChartLine />,
-  Miscellaneous: <FaQuestion />,
+  Groceries: <FaShoppingBag className="text-teal-500" />,
+  Dining: <FaUtensils className="text-blue-500" />,
+  Transport: <FaCar className="text-orange-500" />,
+  Housing: <FaHome className="text-purple-500" />,
+  Subscriptions: <FaBolt className="text-yellow-500" />,
+  Health: <FaHeartbeat className="text-red-500" />,
+  "Personal Care": <FaHeartbeat className="text-pink-500" />,
+  Entertainment: <FaGamepad className="text-rose-500" />,
+  Miscellaneous: <FaQuestion className="text-gray-400" />,
 };
-
-const categories = Object.keys(categoryIcons);
 
 export default function Budgets() {
   const {
-    budgets,
+    budgetsThisMonth,
     addBudget,
     delBudget,
     editBudget,
-    expenses,
-    income,
-    setIncome,
+    setIncomeForMonth,
+    incomeThisMonth,
+    customCategories,
+    selectedMonth,
+    setSelectedMonth,
+    monthlyIncomes,
+    availableMonths,
+    expensesThisMonth,
+    budgets
   } = useData();
+
+  const allCategories = [
+    ...Object.keys(categoryIcons),
+    ...customCategories
+  ];
   const { currencySymbol, currencyCode, setCurrency, currencyOptions } =
     useCurrency();
+
+  const [year, month] = selectedMonth.split("-").map(Number);
+  const displayMonthName = new Date(year, month - 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   // ————————————— STATE —————————————
   const [form, setForm] = useState({ category: "", limit: "", notify: true });
   const [edit, setEdit] = useState(null);
 
-  // Local copy of the “Monthly Income” input
-  const [localIncome, setLocalIncome] = useState(income || "");
+  // Local copy of the “Monthly Income” input (sync with context when month changes)
+  const [localIncome, setLocalIncome] = useState(incomeThisMonth || "");
+
+  useEffect(() => {
+    setLocalIncome(incomeThisMonth || "");
+  }, [incomeThisMonth, selectedMonth]);
 
   // Track which currency is selected
   const [selectedCurrency, setSelectedCurrency] = useState(() => {
@@ -62,16 +80,14 @@ export default function Budgets() {
     );
   });
 
-  // Lock the dropdown once income > 0
-  const [currencyLocked, setCurrencyLocked] = useState(() => {
-    return income > 0;
-  });
+  // Lock the dropdown once ANY income is set in the system
+  const currencyLocked = monthlyIncomes && monthlyIncomes.length > 0;
 
   // Show / hide the “Are you sure you want to reset?” modal
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
-  // Sum up how much has been spent in each category
-  const spentPerCategory = expenses.reduce((acc, e) => {
+  // Sum up how much has been spent in each category (Current Month Only)
+  const spentPerCategory = expensesThisMonth.reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + Number(e.amount);
     return acc;
   }, {});
@@ -87,8 +103,6 @@ export default function Budgets() {
   // ————————————— HANDLERS —————————————
 
   // 1) Save or Update Income:
-  //    • First time (income===0) → lock dropdown after saving
-  //    • Subsequent times (income>0) → simple update
   const handleSaveOrUpdateIncome = () => {
     const val = Number(localIncome);
     if (!val || val <= 0) {
@@ -96,18 +110,16 @@ export default function Budgets() {
       return;
     }
 
-    if (income <= 0) {
-      // First‐time save: store income, persist currency, lock dropdown
-      setIncome(val);
+    // Save income for the currently selected month
+    setIncomeForMonth(val, selectedMonth);
+
+    // If first time setting any income, lock currency
+    if (!currencyLocked) {
       localStorage.setItem("tw_currency", selectedCurrency);
       setCurrency(selectedCurrency);
-      setCurrencyLocked(true);
-      toast.success("Income saved!");
-    } else {
-      // Just updating existing income
-      setIncome(val);
-      toast.success("Income updated!");
     }
+
+    toast.success(`Income for ${displayMonthName} saved!`);
   };
 
   // 2) “Change Currency” button → open a confirmation modal instead of immediately unlocking
@@ -126,7 +138,7 @@ export default function Budgets() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!income || income <= 0) {
+    if (!incomeThisMonth || incomeThisMonth <= 0) {
       toast.error("Please set a valid income first");
       return;
     }
@@ -135,22 +147,21 @@ export default function Budgets() {
       return;
     }
 
-    const isDuplicate = budgets.find(
-      (b) => b.category === form.category && (!edit || edit.id !== b.id)
+    // Check if we already have a budget record for THIS specific month
+    const existingInMonth = budgets.find(
+      (b) => b.category === form.category && b.month === selectedMonth
     );
-    if (isDuplicate) {
-      toast.error("Budget for this category already exists");
-      return;
-    }
 
-    const newBudget = { ...form, limit: Number(form.limit) };
-    if (edit) {
-      editBudget({ ...newBudget, id: edit.id });
-      toast.success("Budget updated!");
+    const newBudget = { ...form, limit: Number(form.limit), month: selectedMonth };
+
+    if (existingInMonth) {
+      editBudget({ ...newBudget, id: existingInMonth.id });
+      toast.success("Budget updated for this month!");
     } else {
       addBudget({ ...newBudget, id: uuid() });
-      toast.success("Budget added!");
+      toast.success("Budget set from this month onwards!");
     }
+
     setForm({ category: "", limit: "", notify: true });
     setEdit(null);
   };
@@ -168,6 +179,31 @@ export default function Budgets() {
   // ————————————— RENDER —————————————
   return (
     <section className="max-w-4xl mx-auto space-y-8 p-4">
+      {/* ========== HEADER: Month Filter ========== */}
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-xl shadow-lg border-b-4 border-indigo-500 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Budget Goals & Progress</h1>
+          <p className="text-gray-500 text-sm">Managing limits for <span className="font-bold text-indigo-600">{displayMonthName}</span></p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100">
+          <label htmlFor="month-filter-budgets" className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Selected Period:</label>
+          <div className="custom-datepicker-wrapper">
+            <DatePicker
+              selected={new Date(year, month - 1)}
+              onChange={(date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, "0");
+                setSelectedMonth(`${yyyy}-${mm}`);
+              }}
+              dateFormat="MMM yyyy"
+              showMonthYearPicker
+              className="bg-transparent text-sm font-extrabold text-indigo-900 focus:outline-none cursor-pointer w-24 text-center"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Income & Currency Section */}
       <div className="bg-white p-6 rounded-xl shadow space-y-4">
         <h2 className="text-lg font-semibold text-gray-700">
@@ -198,9 +234,8 @@ export default function Budgets() {
               value={selectedCurrency}
               onChange={(e) => setSelectedCurrency(e.target.value)}
               disabled={currencyLocked}
-              className={`w-full border rounded p-2 ${
-                currencyLocked ? "bg-gray-100" : ""
-              }`}
+              className={`w-full border rounded p-2 ${currencyLocked ? "bg-gray-100" : ""
+                }`}
             >
               {Object.keys(currencyOptions).map((cur) => (
                 <option key={cur} value={cur}>
@@ -217,11 +252,11 @@ export default function Budgets() {
             onClick={handleSaveOrUpdateIncome}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
           >
-            {income > 0 ? "Update Income" : "Save Income"}
+            {incomeThisMonth > 0 ? "Update Income" : "Save Income"}
           </button>
 
           {/* Change Currency (only visible once income > 0) */}
-          {income > 0 && (
+          {incomeThisMonth > 0 && (
             <button
               onClick={handleChangeCurrencyClick}
               className="bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded text-sm"
@@ -249,7 +284,7 @@ export default function Budgets() {
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >
               <option value="">-- Select --</option>
-              {categories.map((cat) => (
+              {allCategories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
@@ -302,86 +337,95 @@ export default function Budgets() {
 
       {/* Budget Cards */}
       <div className="grid gap-4 md:grid-cols-2">
-  {budgets.map((b) => {
-    const spent = spentPerCategory[b.category] || 0;
-    const remaining = b.limit - spent;
-    const percentage = Math.min((spent / b.limit) * 100, 100);
+        {budgetsThisMonth.map((b) => {
+          const spent = spentPerCategory[b.category] || 0;
+          const remaining = b.limit - spent;
+          const percentage = Math.min((spent / b.limit) * 100, 100);
 
-    // 1) Over budget: spent > limit → red
-    const overBudget = spent > b.limit;
-    // 2) Exactly at limit → blue (“reached budget”)
-    const reachedBudget = spent === b.limit;
-    // 3) Between 80% and just under 100% → orange (“nearing”)
-    const nearLimit = spent < b.limit && percentage >= 80;
-    // 4) Under 80% → green (“safe”)
-    const safe = percentage < 80;
+          // 1) Over budget: spent > limit → red
+          const overBudget = spent > b.limit;
+          // 2) Exactly at limit → blue (“reached budget”)
+          const reachedBudget = spent === b.limit;
+          // 3) Between 80% and just under 100% → orange (“nearing”)
+          const nearLimit = spent < b.limit && percentage >= 80;
+          // 4) Under 80% → green (“safe”)
+          const safe = percentage < 80;
 
-    const barColor = overBudget
-      ? "bg-red-500"
-      : reachedBudget
-      ? "bg-blue-500"
-      : nearLimit
-      ? "bg-orange-400"
-      : "bg-green-500";
+          const barColor = overBudget
+            ? "bg-red-500"
+            : reachedBudget
+              ? "bg-blue-500"
+              : nearLimit
+                ? "bg-orange-400"
+                : "bg-green-500";
 
-    return (
-      <div key={b.id} className="bg-white p-4 rounded-xl shadow space-y-2">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2 font-medium text-gray-800">
-            {categoryIcons[b.category] || <FaQuestion />} {b.category}
-          </div>
-          <div className="flex gap-3 text-gray-500 text-sm">
-            <button onClick={() => openEdit(b)} title="Edit">
-              <FaEdit />
-            </button>
-            <button
-              onClick={() => {
-                delBudget(b.id);
-                toast.success("Budget deleted");
-              }}
-              title="Delete"
-            >
-              <FaTrash />
-            </button>
-          </div>
-        </div>
+          return (
+            <div key={b.id} className="bg-white p-4 rounded-xl shadow space-y-2">
+              <div className="flex justify-between items-center">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 font-medium text-gray-800">
+                    {categoryIcons[b.category] || <FaTags className="text-blue-300" />} {b.category}
+                  </div>
+                  {b.month < selectedMonth && (
+                    <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">
+                      Rolling from {new Date(b.month.split("-")[0], b.month.split("-")[1] - 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-3 text-gray-500 text-sm">
+                  <button onClick={() => openEdit(b)} title="Edit">
+                    <FaEdit />
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Delete all records for this category
+                      const records = budgets.filter(x => x.category === b.category);
+                      records.forEach(r => delBudget(r.id));
+                      toast.success(`Removed ${b.category} budget from all months`);
+                    }}
+                    title="Delete"
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              </div>
 
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className={`${barColor} h-2`}
-            style={{ width: `${percentage}%` }}
-          ></div>
-        </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className={`${barColor} h-2`}
+                  style={{ width: `${percentage}%` }}
+                ></div>
+              </div>
 
-        <div className="text-sm text-gray-600 space-y-1">
-          <p>
-            Limit: {currencySymbol}
-            {b.limit.toFixed(2)}
-          </p>
-          <p>
-            Spent: {currencySymbol}
-            {spent.toFixed(2)}
-          </p>
-          <p>
-            Remaining: {currencySymbol}
-            {remaining.toFixed(2)}
-          </p>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>
+                  Limit: {currencySymbol}
+                  {b.limit.toFixed(2)}
+                </p>
+                <p>
+                  Spent: {currencySymbol}
+                  {spent.toFixed(2)}
+                </p>
+                <p>
+                  Remaining: {currencySymbol}
+                  {remaining.toFixed(2)}
+                </p>
 
-          {overBudget && (
-            <p className="text-red-500">🚨 Over budget!</p>
-          )}
-          {reachedBudget && (
-            <p className="text-blue-500">✅ You have reached your budget</p>
-          )}
-          {nearLimit && b.notify && (
-            <p className="text-orange-500">⚠️ Nearing your budget limit</p>
-          )}
-          {/* no message when 'safe' */}
-        </div>
+                {overBudget && (
+                  <p className="text-red-500">🚨 Over budget!</p>
+                )}
+                {reachedBudget && (
+                  <p className="text-blue-500">✅ You have reached your budget</p>
+                )}
+                {nearLimit && b.notify && (
+                  <p className="text-orange-500">⚠️ Nearing your budget limit</p>
+                )}
+                {/* no message when 'safe' */}
+              </div>
+            </div>
+          );
+        })}
       </div>
-    );
-  })}
-</div>
 
 
       {/* ——————————— Currency Change Confirmation Modal ——————————— */}
@@ -392,7 +436,7 @@ export default function Budgets() {
               Change Currency?
             </h2>
             <p className="text-gray-600 text-sm mb-4">
-              Changing the currency will reset all data (income, budgets, expenses). 
+              Changing the currency will reset all data (income, budgets, expenses).
               Are you sure you want to continue?
             </p>
             <div className="flex justify-end gap-3 pt-2">

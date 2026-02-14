@@ -21,8 +21,18 @@ async function connectDB() {
 }
 connectDB();
 
+const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
 app.use(cors({
-    origin: 'http://localhost:5174', // Restrict to frontend only
+    origin: (origin, cb) => {
+        // allow same-origin / server-to-server / curl
+        if (!origin) return cb(null, true);
+        if (corsOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true
 }));
 
@@ -59,6 +69,8 @@ process.on('SIGTERM', () => {
     console.log('SIGTERM received. Closing server...');
     server.close(() => {
         console.log('Server closed.');
-        process.exit(0);
+        prisma.$disconnect()
+            .catch((e) => console.error('Error disconnecting Prisma:', e))
+            .finally(() => process.exit(0));
     });
 });

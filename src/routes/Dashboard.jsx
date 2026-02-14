@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
+import { Link } from "react-router-dom";
 import {
   FaUtensils,
   FaCar,
@@ -110,7 +111,7 @@ export default function Dashboard() {
             <div className="ml-3">
               <p className="text-sm text-blue-700">
                 You haven't set an income for <span className="font-bold">{displayMonthName}</span> yet.
-                Visit the <a href="/budgets" className="font-bold underline italic">Budgets</a> tab to set it up!
+                Visit the <Link to="/budgets" className="font-bold underline italic">Budgets</Link> tab to set it up!
               </p>
             </div>
           </div>
@@ -285,7 +286,7 @@ export default function Dashboard() {
 
           {budgetsThisMonth.map((b) => {
             const spent = spentPerCategory[b.category] || 0;
-            const percentage = Math.min((spent / b.limit) * 100, 100);
+            const percentage = b.limit > 0 ? Math.min((spent / b.limit) * 100, 100) : 0;
             const overBudget = spent > b.limit;
             const reachedBudget = spent === b.limit;
             const nearLimit = spent < b.limit && percentage >= 80;

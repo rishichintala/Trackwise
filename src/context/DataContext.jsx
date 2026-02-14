@@ -5,7 +5,9 @@ import { useAuth } from "./AuthContext";
 const Ctx = createContext();
 export const useData = () => useContext(Ctx);
 
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ||
+  "http://localhost:8000/api";
 
 export function DataProvider({ children }) {
   const { token, user } = useAuth();
@@ -14,11 +16,18 @@ export function DataProvider({ children }) {
   const [budgets, setBudgets] = useState([]);
   const [monthlyIncomes, setMonthlyIncomes] = useState([]);
   const [customCategories, setCustomCategories] = useState([]);
+  const [dataLoading, setDataLoading] = useState(false);
 
   const today = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(
-    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`
-  );
+  const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    return localStorage.getItem("tw_selectedMonth") || defaultMonth;
+  });
+
+  // Persist month selection across navigation/reloads
+  useEffect(() => {
+    localStorage.setItem("tw_selectedMonth", selectedMonth);
+  }, [selectedMonth]);
 
   // Authenticated axios instance
   const api = useMemo(() => {
@@ -33,13 +42,15 @@ export function DataProvider({ children }) {
     if (token) {
       const fetchData = async () => {
         try {
+          setDataLoading(true);
           const [expRes, budRes, incRes] = await Promise.all([
             api.get("/expenses"),
             api.get("/budgets"),
             api.get("/incomes")
           ]);
           setExpenses(expRes.data);
-          setBudgets(budRes.data);
+          // Normalize backend Budget(amount) -> UI Budget(limit)
+          setBudgets(budRes.data.map(b => ({ ...b, limit: Number(b.amount) })));
           setMonthlyIncomes(incRes.data);
 
           // Seed custom categories from expenses if empty
@@ -47,6 +58,8 @@ export function DataProvider({ children }) {
           setCustomCategories(Array.from(cats));
         } catch (err) {
           console.error("Error fetching data:", err);
+        } finally {
+          setDataLoading(false);
         }
       };
       fetchData();
@@ -54,6 +67,7 @@ export function DataProvider({ children }) {
       setExpenses([]);
       setBudgets([]);
       setMonthlyIncomes([]);
+      setDataLoading(false);
     }
   }, [token, api]);
 
@@ -87,11 +101,21 @@ export function DataProvider({ children }) {
 
   const addBudget = async (b) => {
     try {
-      const res = await api.post("/budgets", b);
+      const payload = {
+        category: b.category,
+        month: b.month,
+        amount: b.limit,
+      };
+      const res = await api.post("/budgets", payload);
       setBudgets(p => {
-        const exists = p.find(x => x.category === b.category && x.month === b.month);
-        if (exists) return p.map(x => x.id === exists.id ? res.data : x);
-        return [res.data, ...p];
+        const normalized = { ...res.data, limit: Number(res.data.amount) };
+        const exists = p.find(x => x.category === normalized.category && x.month === normalized.month);
+        if (exists) {
+          return p.map(x =>
+            x.category === normalized.category && x.month === normalized.month ? normalized : x
+          );
+        }
+        return [normalized, ...p];
       });
     } catch (err) {
       console.error("Failed to save budget", err);
@@ -106,6 +130,9 @@ export function DataProvider({ children }) {
       console.error("Failed to delete budget category", err);
     }
   };
+
+  // For this app, "edit" is the same as "upsert for this category+month"
+  const editBudget = addBudget;
 
   const setIncomeForMonth = async (amount, month) => {
     try {
@@ -130,13 +157,20 @@ export function DataProvider({ children }) {
   /* Derived data for SELECTED month */
   const availableMonths = useMemo(() => {
     const months = new Set();
-    months.add(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
+    months.add(defaultMonth);
+    months.add(selectedMonth);
     expenses.forEach(e => {
       const d = new Date(e.date);
       months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     });
+    budgets.forEach(b => {
+      if (b?.month) months.add(b.month);
+    });
+    monthlyIncomes.forEach(i => {
+      if (i?.month) months.add(i.month);
+    });
     return Array.from(months).sort((a, b) => b.localeCompare(a));
-  }, [expenses]);
+  }, [expenses, budgets, monthlyIncomes, defaultMonth, selectedMonth]);
 
   const expensesThisMonth = useMemo(() => {
     const [year, month] = selectedMonth.split("-").map(Number);
@@ -167,11 +201,12 @@ export function DataProvider({ children }) {
 
   const value = {
     expenses, addExpense, editExpense, delExpense,
-    budgets, budgetsThisMonth, addBudget, delBudget,
+    budgets, budgetsThisMonth, addBudget, editBudget, delBudget,
     monthlyIncomes, setIncomeForMonth, incomeThisMonth,
     customCategories, addCategory, delCategory,
     selectedMonth, setSelectedMonth, availableMonths,
     expensesThisMonth, totalThisMonth,
+    dataLoading,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

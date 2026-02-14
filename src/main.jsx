@@ -1,7 +1,7 @@
 /* src/main.jsx ---------------------------------------------------------- */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router';   // ← comes from react‑router 7
+import { BrowserRouter } from 'react-router-dom';
 import { DataProvider } from './context/DataContext';
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { AuthProvider } from "./context/AuthContext";

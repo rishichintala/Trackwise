@@ -36,8 +36,16 @@ const updateExpense = async (req, res) => {
     const { id } = req.params;
     const { amount, itemName, category, date } = req.body;
     try {
+        // Ensure user owns this expense (schema does not define composite unique on id+userId)
+        const existing = await prisma.expense.findFirst({
+            where: { id, userId: req.userId }
+        });
+        if (!existing) {
+            return res.status(404).json({ message: 'Expense not found' });
+        }
+
         const expense = await prisma.expense.update({
-            where: { id, userId: req.userId },
+            where: { id },
             data: {
                 amount: parseFloat(amount),
                 itemName,
@@ -54,9 +62,15 @@ const updateExpense = async (req, res) => {
 const deleteExpense = async (req, res) => {
     const { id } = req.params;
     try {
-        await prisma.expense.delete({
-            where: { id, userId: req.userId },
+        // Ensure user owns this expense (schema does not define composite unique on id+userId)
+        const existing = await prisma.expense.findFirst({
+            where: { id, userId: req.userId }
         });
+        if (!existing) {
+            return res.status(404).json({ message: 'Expense not found' });
+        }
+
+        await prisma.expense.delete({ where: { id } });
         res.json({ message: 'Expense deleted' });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting expense', error: error.message });

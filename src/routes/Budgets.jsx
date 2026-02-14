@@ -47,7 +47,8 @@ export default function Budgets() {
     monthlyIncomes,
     availableMonths,
     expensesThisMonth,
-    budgets
+    budgets,
+    dataLoading
   } = useData();
 
   const allCategories = [
@@ -104,6 +105,10 @@ export default function Budgets() {
 
   // 1) Save or Update Income:
   const handleSaveOrUpdateIncome = () => {
+    if (dataLoading) {
+      toast("Loading your data… try again in a second.");
+      return;
+    }
     const val = Number(localIncome);
     if (!val || val <= 0) {
       toast.error("Please enter a valid income");
@@ -138,6 +143,10 @@ export default function Budgets() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    if (dataLoading) {
+      toast("Loading your data… try again in a second.");
+      return;
+    }
     if (!incomeThisMonth || incomeThisMonth <= 0) {
       toast.error("Please set a valid income first");
       return;
@@ -340,7 +349,7 @@ export default function Budgets() {
         {budgetsThisMonth.map((b) => {
           const spent = spentPerCategory[b.category] || 0;
           const remaining = b.limit - spent;
-          const percentage = Math.min((spent / b.limit) * 100, 100);
+          const percentage = b.limit > 0 ? Math.min((spent / b.limit) * 100, 100) : 0;
 
           // 1) Over budget: spent > limit → red
           const overBudget = spent > b.limit;
@@ -379,8 +388,7 @@ export default function Budgets() {
                   <button
                     onClick={() => {
                       // Delete all records for this category
-                      const records = budgets.filter(x => x.category === b.category);
-                      records.forEach(r => delBudget(r.id));
+                      delBudget(b.category);
                       toast.success(`Removed ${b.category} budget from all months`);
                     }}
                     title="Delete"

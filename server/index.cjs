@@ -7,8 +7,8 @@ dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient(); // Re-enabled
-const authRoutes = require('./routes/authRoutes');
-const financialRoutes = require('./routes/financialRoutes');
+const authRoutes = require('./routes/authRoutes.cjs');
+const financialRoutes = require('./routes/financialRoutes.cjs');
 
 async function connectDB() {
     try {

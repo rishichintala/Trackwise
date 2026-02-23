@@ -68,6 +68,7 @@ if (process.env.NETLIFY === 'true') {
     console.log('--- Netlify Runtime Detected ---');
     app.use((req, res, next) => {
         console.log(`[${req.method}] ${req.url}`);
+        if (req.method === 'POST') console.log('Body Keys:', Object.keys(req.body || {}));
         next();
     });
 }

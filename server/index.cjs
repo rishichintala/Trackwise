@@ -21,20 +21,25 @@ async function connectDB() {
 }
 connectDB();
 
-const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+// CORS configuration
+if (process.env.NETLIFY === 'true') {
+    // In Netlify, we allow all origins for now to ensure the API is reachable
+    app.use(cors({ origin: true, credentials: true }));
+} else {
+    const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
 
-app.use(cors({
-    origin: (origin, cb) => {
-        // allow same-origin / server-to-server / curl
-        if (!origin) return cb(null, true);
-        if (corsOrigins.includes(origin)) return cb(null, true);
-        return cb(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true
-}));
+    app.use(cors({
+        origin: (origin, cb) => {
+            if (!origin) return cb(null, true);
+            if (corsOrigins.includes(origin)) return cb(null, true);
+            return cb(new Error(`CORS blocked for origin: ${origin}`));
+        },
+        credentials: true
+    }));
+}
 
 
 app.use(express.json());
@@ -42,7 +47,15 @@ app.use(express.json());
 // Diagnostic log for Netlify environment
 if (process.env.NETLIFY === 'true') {
     console.log('--- Netlify Runtime Detected ---');
+    app.use((req, res, next) => {
+        console.log(`[${req.method}] ${req.url}`);
+        next();
+    });
 }
+
+// Health check
+app.get('/api/health', (req, res) => res.json({ status: 'ok', netlify: process.env.NETLIFY }));
+app.get('/health', (req, res) => res.json({ status: 'ok', netlify: process.env.NETLIFY }));
 
 // Routes
 // We mount on both /api and / to handle the difference between local port 8000

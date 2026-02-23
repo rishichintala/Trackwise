@@ -37,6 +37,7 @@ export function AuthProvider({ children }) {
             localStorage.setItem("tw_user", JSON.stringify(res.data.user));
             return { success: true };
         } catch (err) {
+            console.error("Login Error:", err.response?.status, err.response?.data || err.message);
             return { success: false, message: err.response?.data?.message || "Login failed" };
         }
     };
@@ -50,6 +51,7 @@ export function AuthProvider({ children }) {
             localStorage.setItem("tw_user", JSON.stringify(res.data.user));
             return { success: true };
         } catch (err) {
+            console.error("Registration Error:", err.response?.status, err.response?.data || err.message);
             return { success: false, message: err.response?.data?.message || "Registration failed" };
         }
     };

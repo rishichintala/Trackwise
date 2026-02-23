@@ -30,6 +30,7 @@ module.exports.handler = async (event, context) => {
                 status: 'ok',
                 source: 'api.cjs-wrapper',
                 database: dbStatus,
+                jwtSecret: process.env.JWT_SECRET ? "Defined" : "MISSING",
                 path: event.path
             })
         };

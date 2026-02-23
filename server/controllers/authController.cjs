@@ -20,7 +20,11 @@ const register = async (req, res) => {
         res.status(201).json({ user: { id: user.id, name: user.name, email: user.email }, token });
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ message: 'An internal server error occurred' });
+        res.status(500).json({
+            message: 'An internal server error occurred',
+            error: error.message,
+            stack: process.env.NETLIFY === 'true' ? undefined : error.stack
+        });
     }
 };
 
@@ -41,7 +45,10 @@ const login = async (req, res) => {
         res.json({ user: { id: user.id, name: user.name, email: user.email }, token });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: 'An internal server error occurred' });
+        res.status(500).json({
+            message: 'An internal server error occurred',
+            error: error.message
+        });
     }
 };
 

@@ -10,7 +10,7 @@ const getExpenses = async (req, res) => {
         });
         res.json(expenses);
     } catch (error) {
-        console.error('Error fetching expenses:', error);
+        console.error('Error fetching expenses:', error.message);
         res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
@@ -29,7 +29,7 @@ const createExpense = async (req, res) => {
         });
         res.status(201).json(expense);
     } catch (error) {
-        console.error('Error creating expense:', error);
+        console.error('Error creating expense:', error.message);
         res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
@@ -57,7 +57,7 @@ const updateExpense = async (req, res) => {
         });
         res.json(expense);
     } catch (error) {
-        console.error('Error updating expense:', error);
+        console.error('Error updating expense:', error.message);
         res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
@@ -76,7 +76,7 @@ const deleteExpense = async (req, res) => {
         await prisma.expense.delete({ where: { id } });
         res.json({ message: 'Expense deleted' });
     } catch (error) {
-        console.error('Error deleting expense:', error);
+        console.error('Error deleting expense:', error.message);
         res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
@@ -89,7 +89,7 @@ const getBudgets = async (req, res) => {
         });
         res.json(budgets);
     } catch (error) {
-        console.error('Error fetching budgets:', error);
+        console.error('Error fetching budgets:', error.message);
         res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
@@ -115,7 +115,7 @@ const upsertBudget = async (req, res) => {
         }
         res.json(budget);
     } catch (error) {
-        console.error('Error saving budget:', error);
+        console.error('Error saving budget:', error.message);
         res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
@@ -128,7 +128,7 @@ const deleteBudgetByCategory = async (req, res) => {
         });
         res.json({ message: 'Budget category deleted for all months' });
     } catch (error) {
-        console.error('Error deleting budget:', error);
+        console.error('Error deleting budget:', error.message);
         res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
@@ -141,7 +141,7 @@ const getIncomes = async (req, res) => {
         });
         res.json(incomes);
     } catch (error) {
-        console.error('Error fetching incomes:', error);
+        console.error('Error fetching incomes:', error.message);
         res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
@@ -166,7 +166,7 @@ const upsertIncome = async (req, res) => {
         }
         res.json(income);
     } catch (error) {
-        console.error('Error saving income:', error);
+        console.error('Error saving income:', error.message);
         res.status(500).json({ message: 'An internal server error occurred' });
     }
 };

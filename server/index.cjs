@@ -10,6 +10,25 @@ const prisma = new PrismaClient(); // Re-enabled
 const authRoutes = require('./routes/authRoutes.cjs');
 const financialRoutes = require('./routes/financialRoutes.cjs');
 
+// 1. Body Parser FIRST
+app.use(express.json());
+
+// 2. Netlify Path-Stripping Middleware
+app.use((req, res, next) => {
+    const internalPrefix = '/.netlify/functions/api';
+    if (req.url.startsWith(internalPrefix)) {
+        req.url = req.url.replace(internalPrefix, '');
+    }
+    if (req.url.startsWith('/api/api')) {
+        req.url = req.url.replace('/api/api', '/api');
+    }
+    next();
+});
+
+// High-Priority Health Check (Matches before any other routes)
+app.get('/health', (req, res) => res.json({ status: 'ok', netlify: process.env.NETLIFY }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', netlify: process.env.NETLIFY }));
+
 async function connectDB() {
     try {
         await prisma.$connect();
@@ -21,32 +40,29 @@ async function connectDB() {
 }
 connectDB();
 
-const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+// CORS configuration
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
 
 app.use(cors({
     origin: (origin, cb) => {
-        // allow same-origin / server-to-server / curl
-        if (!origin) return cb(null, true);
-        if (corsOrigins.includes(origin)) return cb(null, true);
+        // Allow local development
+        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+
+        // AUTO-ALLOW any Netlify domain (Production or Branch Deploy)
+        if (origin.endsWith('.netlify.app')) return cb(null, true);
+
         return cb(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true
 }));
 
-
-app.use(express.json());
-
-// Diagnostic log for Netlify environment
-if (process.env.NETLIFY === 'true') {
-    console.log('--- Netlify Runtime Detected ---');
-}
+// Health check
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // Routes
-// We mount on both /api and / to handle the difference between local port 8000
-// and Netlify's redirect which strips the /api prefix.
 const mainRouter = express.Router();
 mainRouter.use('/auth', authRoutes);
 mainRouter.use('/', financialRoutes);
@@ -56,7 +72,7 @@ app.use('/', mainRouter);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-    console.error('Unhandled Error:', err);
+    console.error('Unhandled Error:', err.message);
     res.status(500).json({ message: 'An internal server error occurred' });
 });
 

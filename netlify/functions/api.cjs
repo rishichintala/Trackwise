@@ -34,11 +34,16 @@ module.exports.handler = async (event, context) => {
                     try {
                         const { PrismaClient } = require('@prisma/client');
                         const prisma = new PrismaClient();
-                        await prisma.user.count();
+                        const counts = {
+                            user: await prisma.user.count().catch(e => "Error: " + e.message),
+                            expense: await prisma.expense.count().catch(e => "Error: " + e.message),
+                            budget: await prisma.budget.count().catch(e => "Error: " + e.message),
+                            income: await prisma.income.count().catch(e => "Error: " + e.message)
+                        };
                         await prisma.$disconnect();
-                        return "Ready";
+                        return counts;
                     } catch (e) {
-                        return "Error: " + e.message;
+                        return "Critical Error: " + e.message;
                     }
                 })(),
                 jwtSecret: process.env.JWT_SECRET ? "Defined" : "MISSING",

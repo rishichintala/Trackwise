@@ -5,8 +5,11 @@ import { useAuth } from "./AuthContext";
 const Ctx = createContext();
 export const useData = () => useContext(Ctx);
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") || "/api";
+// Force relative path on Netlify to ensure branch previews work correctly
+const isNetlify = typeof window !== 'undefined' && window.location.hostname.includes('netlify.app');
+const API_BASE = (isNetlify || !import.meta.env.VITE_API_BASE_URL)
+  ? "/api"
+  : import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
 
 export function DataProvider({ children }) {
   const { token, user } = useAuth();

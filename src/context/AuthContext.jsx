@@ -3,8 +3,11 @@ import axios from "axios";
 
 const AuthContext = createContext();
 
-const API_BASE =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") || "/api";
+// Force relative path on Netlify to ensure branch previews work correctly
+const isNetlify = typeof window !== 'undefined' && window.location.hostname.includes('netlify.app');
+const API_BASE = (isNetlify || !import.meta.env.VITE_API_BASE_URL)
+    ? "/api"
+    : import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
 const API_URL = `${API_BASE}/auth`;
 
 export function AuthProvider({ children }) {

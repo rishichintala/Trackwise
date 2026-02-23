@@ -41,24 +41,26 @@ async function connectDB() {
 connectDB();
 
 // CORS configuration
-if (process.env.NETLIFY === 'true') {
-    // In Netlify, we allow all origins for now to ensure the API is reachable
-    app.use(cors({ origin: true, credentials: true }));
-} else {
-    const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
 
-    app.use(cors({
-        origin: (origin, cb) => {
-            if (!origin) return cb(null, true);
-            if (corsOrigins.includes(origin)) return cb(null, true);
-            return cb(new Error(`CORS blocked for origin: ${origin}`));
-        },
-        credentials: true
-    }));
-}
+app.use(cors({
+    origin: (origin, cb) => {
+        // Allow local development
+        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+
+        // AUTO-ALLOW any Netlify domain (Production or Branch Deploy)
+        if (origin.endsWith('.netlify.app')) return cb(null, true);
+
+        // Also allow if we are strictly in Netlify environment and it's missing for some reason
+        if (process.env.NETLIFY === 'true') return cb(null, true);
+
+        return cb(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true
+}));
 
 
 // express.json moved to top

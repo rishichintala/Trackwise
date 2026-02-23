@@ -4,8 +4,7 @@ import axios from "axios";
 const AuthContext = createContext();
 
 const API_BASE =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ||
-    "http://localhost:8000/api";
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") || "/api";
 const API_URL = `${API_BASE}/auth`;
 
 export function AuthProvider({ children }) {

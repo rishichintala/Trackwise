@@ -15,8 +15,8 @@ async function connectDB() {
         await prisma.$connect();
         console.log('✅ Database connected successfully');
     } catch (error) {
-        console.error('❌ Database connection failed:', error);
-        process.exit(1);
+        console.error('❌ Database connection failed. Check your DATABASE_URL environment variable in Netlify.', error);
+        // Do not process.exit(1) in serverless environments
     }
 }
 connectDB();
@@ -42,6 +42,12 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', financialRoutes);
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({ message: 'An internal server error occurred' });
+});
 
 if (process.env.NETLIFY !== 'true') {
     const PORT = process.env.PORT || 5001;

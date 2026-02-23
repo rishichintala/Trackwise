@@ -12,17 +12,17 @@
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
-    "@prisma/client": "^7.4.1",
+    "@prisma/client": "^6.19.2",
     "@radix-ui/react-select": "^2.2.5",
     "@tailwindcss/vite": "^4.1.8",
     "axios": "^1.13.5",
-    "bcryptjs": "^3.0.3",
+    "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.9",
     "chartjs-plugin-datalabels": "^2.2.0",
     "cors": "^2.8.6",
     "dayjs": "^1.11.13",
     "dotenv": "^17.3.1",
-    "express": "^4.22.1",
+    "express": "4.21.2",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
@@ -48,6 +48,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "prisma": "^6.19.2",
     "vite": "^6.4.1"
   },
   "overrides": {

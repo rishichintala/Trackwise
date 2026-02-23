@@ -39,9 +39,20 @@ app.use(cors({
 
 app.use(express.json());
 
+// Diagnostic log for Netlify environment
+if (process.env.NETLIFY === 'true') {
+    console.log('--- Netlify Runtime Detected ---');
+}
+
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api', financialRoutes);
+// We mount on both /api and / to handle the difference between local port 8000
+// and Netlify's redirect which strips the /api prefix.
+const mainRouter = express.Router();
+mainRouter.use('/auth', authRoutes);
+mainRouter.use('/', financialRoutes);
+
+app.use('/api', mainRouter);
+app.use('/', mainRouter);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

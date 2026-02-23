@@ -81,16 +81,13 @@ npm run dev
 
 ---
 
-## 🌟 Support & Contribution
+## Support & Contribution
 
 Trackwise is an ongoing project. If you find it useful:
 - ⭐️ Give the project a star on GitHub!
 - 🐛 Report bugs or suggest features via Issues.
 
-## 📫 Contact & Credits
+## Credits
 
 Built with ❤️ by **Sai Rishith Chintala** and **Kavya Vemuri**.
 
-- 💼 **LinkedIn**: [Sai Rishith Chintala](https://www.linkedin.com/in/sai-rishith-chintala)
-- 📧 **Email**: [rishi.chintala19@gmail.com](mailto:rishi.chintala19@gmail.com)
-- 🌐 **Portfolio**: [rishichintala.com](https://rishichintala.com)

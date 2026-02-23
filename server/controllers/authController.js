@@ -19,7 +19,8 @@ const register = async (req, res) => {
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
         res.status(201).json({ user: { id: user.id, name: user.name, email: user.email }, token });
     } catch (error) {
-        res.status(500).json({ message: 'Error registering user', error: error.message });
+        console.error('Registration error:', error);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
@@ -39,7 +40,8 @@ const login = async (req, res) => {
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
         res.json({ user: { id: user.id, name: user.name, email: user.email }, token });
     } catch (error) {
-        res.status(500).json({ message: 'Error logging in', error: error.message });
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 

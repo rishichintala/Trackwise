@@ -111,7 +111,7 @@ export default function Layout({ children }) {
                     to={`/${route}`}
                     onClick={() => setMenuOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center space-x-1 px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 ${isActive ? "bg-gray-100 font-medium" : ""
+                      `flex items-center space-x-1 px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 ${isActive ? "bg-gray-100 font-medium text-blue-600" : ""
                       }`
                     }
                   >
@@ -121,6 +121,18 @@ export default function Layout({ children }) {
                   </NavLink>
                 </li>
               ))}
+              {/* Mobile Logout Button */}
+              <li className="pt-2 mt-2 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    logout();
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center space-x-1 px-3 py-2 rounded-md text-red-500 hover:bg-red-50 font-medium transition-colors"
+                >
+                  <span>Logout</span>
+                </button>
+              </li>
             </ul>
           </div>
         )}
@@ -133,7 +145,24 @@ export default function Layout({ children }) {
 
       {/* ========== FOOTER (sticky bottom) ========== */}
       <footer className="bg-white border-t text-center text-gray-500 text-sm py-4">
-        © 2025 Trackwise | Built with ❤️ by Sai Rishith Chintala
+        © 2026 Trackwise | Built with ❤️ by{' '}
+        <a
+          href="https://github.com/rishichintala"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-gray-700 hover:text-blue-600 transition-colors"
+        >
+          Sai Rishith Chintala
+        </a>{' '}
+        and{' '}
+        <a
+          href="https://github.com/Kavyavemuri25"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-gray-700 hover:text-blue-600 transition-colors"
+        >
+          Kavya Vemuri
+        </a>
       </footer>
     </div>
   );

@@ -43,34 +43,37 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api', financialRoutes);
 
-const PORT = process.env.PORT || 5001;
-
-app.get('/', (req, res) => {
-    res.send('Trackwise API is running...');
-});
-
-const server = app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
-
-process.on('exit', (code) => {
-    console.log(`About to exit with code: ${code}`);
-});
-
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received. Closing server...');
-    server.close(() => {
-        console.log('Server closed.');
-        prisma.$disconnect()
-            .catch((e) => console.error('Error disconnecting Prisma:', e))
-            .finally(() => process.exit(0));
+if (process.env.NETLIFY !== 'true') {
+    const PORT = process.env.PORT || 5001;
+    const server = app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
     });
-});
+
+    process.on('exit', (code) => {
+        console.log(`About to exit with code: ${code}`);
+    });
+
+    process.on('uncaughtException', (err) => {
+        console.error('Uncaught Exception:', err);
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
+
+    process.on('SIGTERM', () => {
+        console.log('SIGTERM received. Closing server...');
+        server.close(() => {
+            console.log('Server closed.');
+            prisma.$disconnect()
+                .catch((e) => console.error('Error disconnecting Prisma:', e))
+                .finally(() => process.exit(0));
+        });
+    });
+
+    // Prevent Node from exiting prematurely due to dependency unref bugs during local dev
+    setInterval(() => { }, 1000 * 60 * 60);
+}
+
+// Export the app for Netlify Serverless Functions wrapper
+module.exports = app;

@@ -64,12 +64,14 @@ export default function ExpenseForm() {
   ];
 
   const handleAddCustomCategory = () => {
-    if (newCat.trim()) {
-      addCategory(newCat.trim());
-      setForm({ ...form, category: newCat.trim() });
+    // Sanitize: trim whitespace, limit length, strip control chars
+    const sanitized = newCat.trim().replace(/[\u0000-\u001F\u007F<>]/g, "").slice(0, 40);
+    if (sanitized) {
+      addCategory(sanitized);
+      setForm({ ...form, category: sanitized });
       setNewCat("");
       setShowAddCat(false);
-      toast.success(`Category "${newCat.trim()}" added!`);
+      toast.success(`Category "${sanitized}" added!`);
     }
   };
 
@@ -83,7 +85,7 @@ export default function ExpenseForm() {
       return;
     }
 
-    if (!form.amount || Number(form.amount) <= 0 || !form.itemName || !form.category) {
+    if (!form.amount || Number(form.amount) <= 0 || !form.itemName?.trim() || !form.category) {
       toast.error("Please fill in all fields with valid data");
       return;
     }
@@ -114,6 +116,7 @@ export default function ExpenseForm() {
 
     const newExpense = {
       ...form,
+      itemName: form.itemName.trim().slice(0, 100),
       amount: Number(form.amount),
       date: dateString,
       id: Date.now(),
@@ -261,6 +264,7 @@ export default function ExpenseForm() {
               className="w-full border p-2 rounded"
               placeholder="e.g. Vacation"
               value={newCat}
+              maxLength={40}
               onChange={(e) => setNewCat(e.target.value)}
               autoFocus
             />

@@ -132,9 +132,11 @@ export default function Budgets() {
     setShowCurrencyModal(true);
   };
 
-  // 3) If the user confirms in the modal (“Yes, Reset All”), we clear everything and reload
+  // 3) If the user confirms in the modal (“Yes, Reset All”), we clear only Trackwise keys and reload
   const confirmResetCurrency = () => {
-    localStorage.clear();
+    // Only remove Trackwise-specific keys — never wipe all of localStorage
+    const twKeys = Object.keys(localStorage).filter(k => k.startsWith("tw_"));
+    twKeys.forEach(k => localStorage.removeItem(k));
     localStorage.setItem("tw_currency", selectedCurrency);
     window.location.reload();
   };

@@ -5,11 +5,28 @@ import { useCurrency } from "../context/CurrencyContext";
 import PieChart from "../components/PieChart";
 import BarChart from "../components/BarChart";
 import dayjs from "dayjs";
-import { FaFileExcel, FaFilePdf, FaDownload } from "react-icons/fa";
-import * as XLSX from "xlsx";
+import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { toast } from "react-hot-toast";
+
+// Lightweight, dependency-free CSV export (no third-party library needed)
+function exportCSV(rows, filename) {
+  const escape = (v) => {
+    const s = String(v ?? "");
+    return s.includes(",") || s.includes('"') || s.includes("\n")
+      ? `"${s.replace(/"/g, '""')}"`
+      : s;
+  };
+  const csv = rows.map((r) => r.map(escape).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function Reports() {
   const { expenses } = useData();
@@ -82,34 +99,22 @@ export default function Reports() {
   // ─── 7) Export Handlers ───
   const exportToExcel = () => {
     try {
-      const data = filtered.map(e => ({
-        Date: dayjs(e.date).format("YYYY-MM-DD"),
-        Item: e.itemName || "Unnamed",
-        Category: e.category,
-        Amount: Number(e.amount).toFixed(2)
-      }));
+      const header = ["Date", "Item", "Category", "Amount"];
+      const rows = filtered.map(e => [
+        dayjs(e.date).format("YYYY-MM-DD"),
+        e.itemName || "Unnamed",
+        e.category,
+        Number(e.amount).toFixed(2),
+      ]);
+      // Add a total row at the bottom
+      rows.push(["TOTAL", "", "", totalSpent.toFixed(2)]);
 
-      // Add Total Row
-      data.push({
-        Date: "TOTAL",
-        Item: "",
-        Category: "",
-        Amount: totalSpent.toFixed(2)
-      });
-
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Expenses");
-
-      // Basic Column Widths
-      ws["!cols"] = [{ wch: 15 }, { wch: 30 }, { wch: 20 }, { wch: 15 }];
-
-      const safeFilename = `Trackwise_Expenses_${range.from || 'start'}_to_${range.to || 'end'}.xlsx`;
-      XLSX.writeFile(wb, safeFilename);
-      toast.success("Excel report downloaded!");
+      const safeFilename = `Trackwise_Expenses_${range.from || "start"}_to_${range.to || "end"}.csv`;
+      exportCSV([header, ...rows], safeFilename);
+      toast.success("CSV report downloaded! (Opens in Excel)");
     } catch (err) {
-      console.error("Excel Export Error:", err);
-      toast.error("Failed to generate Excel report.");
+      console.error("CSV Export Error:", err);
+      toast.error("Failed to generate report.");
     }
   };
 

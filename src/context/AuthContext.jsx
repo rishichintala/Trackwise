@@ -15,9 +15,16 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         if (token) {
-            // In a real app, you'd verify the token with the backend here
-            const savedUser = JSON.parse(localStorage.getItem("tw_user"));
-            if (savedUser) setUser(savedUser);
+            try {
+                const raw = localStorage.getItem("tw_user");
+                const savedUser = raw ? JSON.parse(raw) : null;
+                if (savedUser) setUser(savedUser);
+            } catch {
+                // Corrupt stored user data — clear it and force re-login
+                localStorage.removeItem("tw_token");
+                localStorage.removeItem("tw_user");
+                setToken(null);
+            }
         }
         setLoading(false);
     }, [token]);

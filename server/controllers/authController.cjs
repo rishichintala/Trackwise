@@ -5,36 +5,27 @@ const prisma = new PrismaClient();
 
 const register = async (req, res) => {
     const { name, email, password } = req.body;
-    console.log(`--- [Register] Email: ${email || 'NONE'} ---`);
 
     if (!name || !email || !password) {
-        return res.status(400).json({ message: 'Missing fields', fields: { name: !!name, email: !!email, pass: !!password } });
+        return res.status(400).json({ message: 'Missing required fields' });
     }
 
     try {
         const userExists = await prisma.user.findUnique({ where: { email } });
         if (userExists) return res.status(400).json({ message: 'User already exists' });
 
-        console.log('--- Step: Hashing ---');
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        console.log('--- Step: DB Create ---');
         const user = await prisma.user.create({
             data: { name, email, password: hashedPassword },
         });
 
-        console.log('--- Step: JWT ---');
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
-        console.log('✅ Registered');
         res.status(201).json({ user: { id: user.id, name: user.name, email: user.email }, token });
     } catch (error) {
-        console.error('Registration Crash:', error);
-        res.status(500).json({
-            message: 'Registration failed',
-            error: error.message,
-            stack: process.env.NETLIFY === 'true' ? undefined : error.stack
-        });
+        console.error('Registration error:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
@@ -54,11 +45,8 @@ const login = async (req, res) => {
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
         res.json({ user: { id: user.id, name: user.name, email: user.email }, token });
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            message: 'An internal server error occurred',
-            error: error.message
-        });
+        console.error('Login error:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 

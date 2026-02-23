@@ -54,34 +54,15 @@ app.use(cors({
         // AUTO-ALLOW any Netlify domain (Production or Branch Deploy)
         if (origin.endsWith('.netlify.app')) return cb(null, true);
 
-        // Also allow if we are strictly in Netlify environment and it's missing for some reason
-        if (process.env.NETLIFY === 'true') return cb(null, true);
-
         return cb(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true
 }));
 
-
-// express.json moved to top
-
-// Diagnostic log for Netlify environment
-if (process.env.NETLIFY === 'true') {
-    console.log('--- Netlify Runtime Detected ---');
-    app.use((req, res, next) => {
-        console.log(`[${req.method}] ${req.url}`);
-        if (req.method === 'POST') console.log('Body Keys:', Object.keys(req.body || {}));
-        next();
-    });
-}
-
 // Health check
-app.get('/api/health', (req, res) => res.json({ status: 'ok', netlify: process.env.NETLIFY }));
-app.get('/health', (req, res) => res.json({ status: 'ok', netlify: process.env.NETLIFY }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // Routes
-// We mount on both /api and / to handle the difference between local port 8000
-// and Netlify's redirect which strips the /api prefix.
 const mainRouter = express.Router();
 mainRouter.use('/auth', authRoutes);
 mainRouter.use('/', financialRoutes);
@@ -91,12 +72,8 @@ app.use('/', mainRouter);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-    console.error('Unhandled Error:', err);
-    res.status(500).json({
-        message: 'An internal server error occurred',
-        error: err.message,
-        stack: process.env.NETLIFY === 'true' ? undefined : err.stack
-    });
+    console.error('Unhandled Error:', err.message);
+    res.status(500).json({ message: 'An internal server error occurred' });
 });
 
 if (process.env.NETLIFY !== 'true') {

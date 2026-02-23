@@ -8,6 +8,15 @@ const handler = serverless(app);
 
 module.exports.handler = async (event, context) => {
     console.log(`--- [api] Function Event Path: ${event.path} ---`);
-    console.log(`--- [api] Function Method: ${event.httpMethod} ---`);
+
+    // Fast-path Health Check (Bypasses Express for debugging)
+    if (event.path === '/api/health' || event.path === '/health') {
+        return {
+            statusCode: 200,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ status: 'ok', source: 'function-wrapper', path: event.path })
+        };
+    }
+
     return await handler(event, context);
 };

@@ -18,29 +18,62 @@ import {
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 
-const categories = [
-  { label: "Food", icon: <FaUtensils /> },
+const defaultCategories = [
+  { label: "Groceries", icon: <FaShoppingBag /> },
+  { label: "Dining", icon: <FaUtensils /> },
   { label: "Transport", icon: <FaCar /> },
   { label: "Housing", icon: <FaHome /> },
-  { label: "Entertainment", icon: <FaGamepad /> },
-  { label: "Utilities", icon: <FaBolt /> },
+  { label: "Subscriptions", icon: <FaBolt /> },
   { label: "Health", icon: <FaHeartbeat /> },
-  { label: "Shopping", icon: <FaShoppingBag /> },
-  { label: "Business", icon: <FaBriefcase /> },
+  { label: "Personal Care", icon: <FaHeartbeat /> },
+  { label: "Entertainment", icon: <FaGamepad /> },
   { label: "Miscellaneous", icon: <FaQuestion /> },
 ];
 
 export default function ExpenseForm() {
-  const { addExpense, expenses, budgets, income } = useData();
+  const {
+    addExpense,
+    expenses,
+    budgets,
+    incomeThisMonth,
+    customCategories,
+    addCategory,
+    selectedMonth,
+    monthlyIncomes
+  } = useData();
   const { currencySymbol } = useCurrency();
 
   const [form, setForm] = useState({
     amount: "",
+    itemName: "",
     category: "",
     date: new Date(),
   });
 
-  const isIncomeSet = typeof income === "number" && income > 0;
+  const [newCat, setNewCat] = useState("");
+  const [showAddCat, setShowAddCat] = useState(false);
+
+  const [year, month] = selectedMonth.split("-").map(Number);
+  const displayMonthName = new Date(year, month - 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+  const isIncomeSet = typeof incomeThisMonth === "number" && incomeThisMonth > 0;
+
+  const allCategories = [
+    ...defaultCategories.map(c => c.label),
+    ...customCategories
+  ];
+
+  const handleAddCustomCategory = () => {
+    // Sanitize: trim whitespace, limit length, strip control chars
+    const sanitized = newCat.trim().replace(/[\u0000-\u001F\u007F<>]/g, "").slice(0, 40);
+    if (sanitized) {
+      addCategory(sanitized);
+      setForm({ ...form, category: sanitized });
+      setNewCat("");
+      setShowAddCat(false);
+      toast.success(`Category "${sanitized}" added!`);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -52,15 +85,30 @@ export default function ExpenseForm() {
       return;
     }
 
-    if (!form.amount || Number(form.amount) <= 0 || !form.category) {
+    if (!form.amount || Number(form.amount) <= 0 || !form.itemName?.trim() || !form.category) {
       toast.error("Please fill in all fields with valid data");
       return;
     }
 
-    // ─── Build a local date at midnight (user picks only Y-M-D) ───
+    // ─── Validate Income for Selected Date ───
     const picked = form.date;
     const yyyy = picked.getFullYear();
     const mm = String(picked.getMonth() + 1).padStart(2, "0");
+    const targetMonth = `${yyyy}-${mm}`;
+
+    const hasIncome = monthlyIncomes.some(
+      (i) => i.month === targetMonth && Number(i.amount) > 0
+    );
+
+    /* VALIDATION LOGIC START */
+    if (!hasIncome) {
+      const monthName = picked.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      toast.error(`Cannot add expense for ${monthName}. No income recorded.`);
+      return;
+    }
+
+    // ─── Build a local date at midnight (user picks only Y-M-D) ───
+    // picked, yyyy, mm are defined in the validation block above
     const dd = String(picked.getDate()).padStart(2, "0");
 
     // Append 'T12:00:00' so JS will parse as local midday (no shift)
@@ -68,8 +116,9 @@ export default function ExpenseForm() {
 
     const newExpense = {
       ...form,
+      itemName: form.itemName.trim().slice(0, 100),
       amount: Number(form.amount),
-      date: dateString, 
+      date: dateString,
       id: Date.now(),
     };
 
@@ -99,16 +148,15 @@ export default function ExpenseForm() {
 
     addExpense(newExpense);
     toast.success("Expense added");
-    setForm({ amount: "", category: "", date: new Date() });
+    setForm({ amount: "", itemName: "", category: "", date: new Date() });
   };
 
   return (
     <div>
       {!isIncomeSet && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md mb-6 max-w-2xl mx-auto">
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md mb-6 max-w-2xl mx-auto shadow-sm">
           <p className="text-yellow-800 text-sm">
-            🚀 Before adding expenses, please go to Budgets and set your
-            monthly income & currency.
+            🚀 Before adding expenses for <span className="font-bold">{displayMonthName}</span>, please go to <a href="/budgets" className="font-bold underline italic">Budgets</a> and set your monthly income & currency.
           </p>
         </div>
       )}
@@ -121,7 +169,7 @@ export default function ExpenseForm() {
           <FaPlus /> Add Expense
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Amount */}
           <div>
             <label className="text-sm text-gray-600">Amount</label>
@@ -136,24 +184,46 @@ export default function ExpenseForm() {
             />
           </div>
 
+          {/* Item Name */}
+          <div>
+            <label className="text-sm text-gray-600">Item Name</label>
+            <input
+              type="text"
+              placeholder="e.g. Tablets"
+              className="w-full border p-2 rounded mt-1 disabled:opacity-50"
+              value={form.itemName}
+              onChange={(e) =>
+                setForm({ ...form, itemName: e.target.value })
+              }
+              disabled={!isIncomeSet}
+            />
+          </div>
+
           {/* Category */}
           <div>
             <label className="text-sm text-gray-600">Category</label>
-            <select
-              className="w-full border p-2 rounded mt-1 disabled:opacity-50"
-              value={form.category}
-              onChange={(e) =>
-                setForm({ ...form, category: e.target.value })
-              }
-              disabled={!isIncomeSet}
-            >
-              <option value="">-- Select --</option>
-              {categories.map((cat) => (
-                <option key={cat.label} value={cat.label}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <select
+                className="w-full border p-2 rounded mt-1 disabled:opacity-50"
+                value={form.category}
+                onChange={(e) => {
+                  if (e.target.value === "___ADD_NEW___") {
+                    setShowAddCat(true);
+                  } else {
+                    setForm({ ...form, category: e.target.value });
+                  }
+                }}
+                disabled={!isIncomeSet}
+              >
+                <option value="">-- Select --</option>
+                {allCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+                <option value="___ADD_NEW___" className="text-blue-600 font-bold">+ Add Custom</option>
+              </select>
+            </div>
           </div>
 
           {/* Date */}
@@ -173,17 +243,48 @@ export default function ExpenseForm() {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className={`${
-              isIncomeSet
-                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                : "bg-gray-300 text-gray-600 cursor-not-allowed"
-            } px-4 py-2 rounded text-sm`}
+            className={`${isIncomeSet
+              ? "bg-blue-600 hover:bg-blue-700 text-white"
+              : "bg-gray-300 text-gray-600 cursor-not-allowed"
+              } px-4 py-2 rounded text-sm`}
             disabled={!isIncomeSet}
           >
             Add Expense
           </button>
         </div>
       </form>
+
+      {/* Custom Category Modal */}
+      {showAddCat && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm mx-4 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-700">Add Custom Category</h3>
+            <input
+              type="text"
+              className="w-full border p-2 rounded"
+              placeholder="e.g. Vacation"
+              value={newCat}
+              maxLength={40}
+              onChange={(e) => setNewCat(e.target.value)}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setShowAddCat(false); setNewCat(""); }}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddCustomCategory}
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
+              >
+                Create Category
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

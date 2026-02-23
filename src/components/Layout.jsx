@@ -1,9 +1,10 @@
-// src/components/Layout.jsx
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { logout } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -19,8 +20,7 @@ export default function Layout({ children }) {
               <NavLink
                 to="/dashboard"
                 className={({ isActive }) =>
-                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${
-                    isActive ? "text-blue-600 font-medium" : ""
+                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${isActive ? "text-blue-600 font-medium" : ""
                   }`
                 }
               >
@@ -29,8 +29,7 @@ export default function Layout({ children }) {
               <NavLink
                 to="/expenses"
                 className={({ isActive }) =>
-                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${
-                    isActive ? "text-blue-600 font-medium" : ""
+                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${isActive ? "text-blue-600 font-medium" : ""
                   }`
                 }
               >
@@ -39,8 +38,7 @@ export default function Layout({ children }) {
               <NavLink
                 to="/budgets"
                 className={({ isActive }) =>
-                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${
-                    isActive ? "text-blue-600 font-medium" : ""
+                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${isActive ? "text-blue-600 font-medium" : ""
                   }`
                 }
               >
@@ -49,13 +47,18 @@ export default function Layout({ children }) {
               <NavLink
                 to="/reports"
                 className={({ isActive }) =>
-                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${
-                    isActive ? "text-blue-600 font-medium" : ""
+                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${isActive ? "text-blue-600 font-medium" : ""
                   }`
                 }
               >
                 <span>Reports</span>
               </NavLink>
+              <button
+                onClick={logout}
+                className="flex items-center space-x-1 text-red-500 hover:text-red-700 font-medium transition-colors"
+              >
+                <span>Logout</span>
+              </button>
             </div>
 
             {/* ─── Mobile Hamburger Button (visible on small) ─── */}
@@ -108,8 +111,7 @@ export default function Layout({ children }) {
                     to={`/${route}`}
                     onClick={() => setMenuOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center space-x-1 px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 ${
-                        isActive ? "bg-gray-100 font-medium" : ""
+                      `flex items-center space-x-1 px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 ${isActive ? "bg-gray-100 font-medium" : ""
                       }`
                     }
                   >

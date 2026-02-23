@@ -1,30 +1,34 @@
-/* src/App.jsx ----------------------------------------------------------- */
-import { Routes, Route, Navigate } from 'react-router';
-import Navbar    from './components/Navbar';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from "./context/AuthContext";
 import Dashboard from './routes/Dashboard';
-import Expenses  from './routes/Expenses';
-import Budgets   from './routes/Budgets';
-import Reports   from './routes/Reports';
+import Expenses from './routes/Expenses';
+import Budgets from './routes/Budgets';
+import Reports from './routes/Reports';
+import Login from './routes/Login';
+import Register from './routes/Register';
 import Layout from "./components/Layout";
+
+function ProtectedRoute({ children }) {
+  const { token, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (!token) return <Navigate to="/login" replace />;
+  return <Layout>{children}</Layout>;
+}
 
 export default function App() {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      {/* top nav bar */}
-      {/* <Navbar /> */}
+    <div className="min-h-screen bg-slate-50">
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      {/* page content */}
-      <main className="flex-1 container mx-auto px-4 py-6">
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/expenses"  element={<Expenses  />} />
-          <Route path="/budgets"   element={<Budgets   />} />
-          <Route path="/reports"   element={<Reports   />} />
-        </Routes>
-        </Layout>
-      </main>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+        <Route path="/budgets" element={<ProtectedRoute><Budgets /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+      </Routes>
     </div>
   );
 }

@@ -145,7 +145,7 @@ export default function Layout({ children }) {
 
       {/* ========== FOOTER (sticky bottom) ========== */}
       <footer className="bg-white border-t text-center text-gray-500 text-sm py-4">
-        © 2026 Trackwise | Built with ❤️ by{' '}
+        © {new Date().getFullYear()} Trackwise | Built with ❤️ by{' '}
         <a
           href="https://github.com/rishichintala"
           target="_blank"

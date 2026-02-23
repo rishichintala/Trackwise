@@ -30,6 +30,17 @@ module.exports.handler = async (event, context) => {
                 status: 'ok',
                 source: 'api.cjs-wrapper',
                 database: dbStatus,
+                userTable: await (async () => {
+                    try {
+                        const { PrismaClient } = require('@prisma/client');
+                        const prisma = new PrismaClient();
+                        await prisma.user.count();
+                        await prisma.$disconnect();
+                        return "Ready";
+                    } catch (e) {
+                        return "Error: " + e.message;
+                    }
+                })(),
                 jwtSecret: process.env.JWT_SECRET ? "Defined" : "MISSING",
                 path: event.path
             })

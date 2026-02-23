@@ -10,15 +10,15 @@ const prisma = new PrismaClient(); // Re-enabled
 const authRoutes = require('./routes/authRoutes.cjs');
 const financialRoutes = require('./routes/financialRoutes.cjs');
 
-// Netlify Path-Stripping Middleware
-// Netlify proxies /api/* to /.netlify/functions/api/health
-// We need to strip the internal prefix so Express routes match correctly.
+// 1. Body Parser FIRST
+app.use(express.json());
+
+// 2. Netlify Path-Stripping Middleware
 app.use((req, res, next) => {
     const internalPrefix = '/.netlify/functions/api';
     if (req.url.startsWith(internalPrefix)) {
         req.url = req.url.replace(internalPrefix, '');
     }
-    // Also handle cases where the proxy might leave a double /api
     if (req.url.startsWith('/api/api')) {
         req.url = req.url.replace('/api/api', '/api');
     }
@@ -61,7 +61,7 @@ if (process.env.NETLIFY === 'true') {
 }
 
 
-app.use(express.json());
+// express.json moved to top
 
 // Diagnostic log for Netlify environment
 if (process.env.NETLIFY === 'true') {
@@ -89,7 +89,11 @@ app.use('/', mainRouter);
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error('Unhandled Error:', err);
-    res.status(500).json({ message: 'An internal server error occurred' });
+    res.status(500).json({
+        message: 'An internal server error occurred',
+        error: err.message,
+        stack: process.env.NETLIFY === 'true' ? undefined : err.stack
+    });
 });
 
 if (process.env.NETLIFY !== 'true') {

@@ -1,5 +1,5 @@
 const serverless = require('serverless-http');
-const app = require('../../server/index');
+const app = require('../../server/index.cjs');
 
 console.log('--- Netlify Function [api] Initialized ---');
 

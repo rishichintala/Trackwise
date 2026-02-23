@@ -6,9 +6,20 @@ console.log('--- [api.cjs] FUNCTION STARTING ---');
 const handler = serverless(app);
 
 module.exports.handler = async (event, context) => {
-    // Immediate health check response to bypass all middleware/app logic
+    // Proactive Health Check (Verifies Routing + Function + Database)
     if (event.path.endsWith('/health')) {
         console.log('--- [api.cjs] Health Check Triggered ---');
+        let dbStatus = "Checking...";
+        try {
+            const { PrismaClient } = require('@prisma/client');
+            const prisma = new PrismaClient();
+            await prisma.$queryRaw`SELECT 1`;
+            dbStatus = "Connected";
+            await prisma.$disconnect();
+        } catch (e) {
+            dbStatus = "Connection Failed: " + e.message;
+        }
+
         return {
             statusCode: 200,
             headers: {
@@ -18,6 +29,7 @@ module.exports.handler = async (event, context) => {
             body: JSON.stringify({
                 status: 'ok',
                 source: 'api.cjs-wrapper',
+                database: dbStatus,
                 path: event.path
             })
         };

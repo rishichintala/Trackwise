@@ -120,82 +120,115 @@ export default function ExpenseTable() {
           No expenses yet. Start by adding one!
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col">
-          <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 border-b sticky top-0 z-10">
-                <tr>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Item & Category</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Amount</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {paginatedExpenses.map((exp) => (
-                  <tr key={exp.id} className="hover:bg-gray-50 transition-colors group">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(exp.date)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-900">{exp.itemName}</span>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
-                          {categoryIcons[exp.category] || <FaTags className="text-blue-300" />}
-                          {exp.category}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-sm font-bold text-gray-900">
-                        {currencySymbol}{Number(exp.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <div className="flex justify-end gap-3 transition-opacity">
-                        <button
-                          onClick={() => setEditing(exp)}
-                          className="text-gray-400 hover:text-blue-600 p-1"
-                          title="Edit"
-                        >
-                          <FaEdit />
-                        </button>
-                        <button
-                          onClick={() => {
-                            delExpense(exp.id);
-                            toast.success("Expense deleted");
-                          }}
-                          className="text-gray-400 hover:text-red-500 p-1"
-                          title="Delete"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </td>
+        <div className="max-w-4xl mx-auto space-y-4">
+          {/* Desktop Table (hidden on mobile) */}
+          <div className="hidden sm:block bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 border-b sticky top-0 z-10">
+                  <tr>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Item & Category</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Amount</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paginatedExpenses.map((exp) => (
+                    <tr key={exp.id} className="hover:bg-gray-50 transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(exp.date)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-gray-900">{exp.itemName}</span>
+                          <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
+                            {categoryIcons[exp.category] || <FaTags className="text-blue-300" />}
+                            {exp.category}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className="text-sm font-bold text-gray-900">
+                          {currencySymbol}{Number(exp.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <div className="flex justify-end gap-3 transition-opacity">
+                          <button
+                            onClick={() => setEditing(exp)}
+                            className="text-gray-400 hover:text-blue-600 p-1"
+                            title="Edit"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            onClick={() => {
+                              delExpense(exp.id);
+                              toast.success("Expense deleted");
+                            }}
+                            className="text-gray-400 hover:text-red-500 p-1"
+                            title="Delete"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile Cards View (hidden on desktop) */}
+          <div className="sm:hidden space-y-3">
+            {paginatedExpenses.map((exp) => (
+              <div key={exp.id} className="bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-50 rounded-lg text-lg">
+                    {categoryIcons[exp.category] || <FaTags className="text-blue-300" />}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-gray-900">{exp.itemName || "Unnamed"}</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formatDate(exp.date)}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="text-sm font-black text-red-600">
+                    -{currencySymbol}{Number(exp.amount).toFixed(2)}
+                  </span>
+                  <div className="flex gap-4">
+                    <button onClick={() => setEditing(exp)} className="text-gray-400 hover:text-blue-600 text-base">
+                      <FaEdit />
+                    </button>
+                    <button onClick={() => { delExpense(exp.id); toast.success("Deleted"); }} className="text-gray-400 hover:text-red-500 text-base">
+                      <FaTrash />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="bg-gray-50 px-6 py-3 border-t flex items-center justify-between">
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+            <div className="bg-white rounded-xl shadow-sm border px-6 py-3 flex items-center justify-between">
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                 Page {currentPage} of {totalPages}
               </div>
               <div className="flex gap-2">
                 <button
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(p => p - 1)}
-                  className="px-3 py-1 bg-white border rounded text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="px-3 py-1 bg-white border rounded text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all"
                 >
-                  Previous
+                  Prev
                 </button>
                 <button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(p => p + 1)}
-                  className="px-3 py-1 bg-white border rounded text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="px-3 py-1 bg-white border rounded text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all"
                 >
                   Next
                 </button>

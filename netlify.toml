@@ -1,11 +1,11 @@
 [build]
   publish = "dist"
-  command = "npm install && cd server && npm install && npx prisma generate && cd .. && npm run build"
+  command = "npm install && npx prisma generate --schema=server/prisma/schema.prisma && NETLIFY=true npm run build"
   functions = "netlify/functions"
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["server/prisma/schema.prisma", "server/node_modules/.prisma/**/*", "server/node_modules/@prisma/client/**/*"]
+  included_files = ["server/prisma/schema.prisma", "node_modules/.prisma/**/*", "node_modules/@prisma/client/**/*"]
 
 # Proxy requests starting with /api to the serverless function
 [[redirects]]

@@ -10,6 +10,25 @@ const prisma = new PrismaClient(); // Re-enabled
 const authRoutes = require('./routes/authRoutes.cjs');
 const financialRoutes = require('./routes/financialRoutes.cjs');
 
+// Netlify Path-Stripping Middleware
+// Netlify proxies /api/* to /.netlify/functions/api/health
+// We need to strip the internal prefix so Express routes match correctly.
+app.use((req, res, next) => {
+    const internalPrefix = '/.netlify/functions/api';
+    if (req.url.startsWith(internalPrefix)) {
+        req.url = req.url.replace(internalPrefix, '');
+    }
+    // Also handle cases where the proxy might leave a double /api
+    if (req.url.startsWith('/api/api')) {
+        req.url = req.url.replace('/api/api', '/api');
+    }
+    next();
+});
+
+// High-Priority Health Check (Matches before any other routes)
+app.get('/health', (req, res) => res.json({ status: 'ok', netlify: process.env.NETLIFY }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', netlify: process.env.NETLIFY }));
+
 async function connectDB() {
     try {
         await prisma.$connect();

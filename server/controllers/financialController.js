@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../prisma/client.cjs');
 
 // --- Expenses ---
 const getExpenses = async (req, res) => {
@@ -10,7 +9,8 @@ const getExpenses = async (req, res) => {
         });
         res.json(expenses);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching expenses', error: error.message });
+        console.error('Error fetching expenses:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
@@ -19,7 +19,7 @@ const createExpense = async (req, res) => {
     try {
         const expense = await prisma.expense.create({
             data: {
-                amount: parseFloat(amount),
+                amount: Number.parseFloat(amount),
                 itemName,
                 category,
                 date: new Date(date),
@@ -28,7 +28,8 @@ const createExpense = async (req, res) => {
         });
         res.status(201).json(expense);
     } catch (error) {
-        res.status(500).json({ message: 'Error creating expense', error: error.message });
+        console.error('Error creating expense:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
@@ -40,7 +41,7 @@ const updateExpense = async (req, res) => {
         const result = await prisma.expense.updateMany({
             where: { id, userId: req.userId },
             data: {
-                amount: parseFloat(amount),
+                amount: Number.parseFloat(amount),
                 itemName,
                 category,
                 date: new Date(date),
@@ -49,11 +50,11 @@ const updateExpense = async (req, res) => {
         if (result.count === 0) {
             return res.status(404).json({ message: 'Expense not found' });
         }
-        // Return the updated record
         const expense = await prisma.expense.findUnique({ where: { id } });
         res.json(expense);
     } catch (error) {
-        res.status(500).json({ message: 'Error updating expense', error: error.message });
+        console.error('Error updating expense:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
@@ -69,7 +70,8 @@ const deleteExpense = async (req, res) => {
         }
         res.json({ message: 'Expense deleted' });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting expense', error: error.message });
+        console.error('Error deleting expense:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
@@ -81,32 +83,24 @@ const getBudgets = async (req, res) => {
         });
         res.json(budgets);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching budgets', error: error.message });
+        console.error('Error fetching budgets:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
 const upsertBudget = async (req, res) => {
     const { category, amount, month } = req.body;
     try {
-        // Find if budget exists for this month/category
-        const existing = await prisma.budget.findFirst({
-            where: { category, month, userId: req.userId }
+        // Atomic upsert using the unique constraint on [userId, category, month]
+        const budget = await prisma.budget.upsert({
+            where: { userId_category_month: { userId: req.userId, category, month } },
+            update: { amount: Number.parseFloat(amount) },
+            create: { category, amount: Number.parseFloat(amount), month, userId: req.userId },
         });
-
-        let budget;
-        if (existing) {
-            budget = await prisma.budget.update({
-                where: { id: existing.id },
-                data: { amount: parseFloat(amount) }
-            });
-        } else {
-            budget = await prisma.budget.create({
-                data: { category, amount: parseFloat(amount), month, userId: req.userId }
-            });
-        }
         res.json(budget);
     } catch (error) {
-        res.status(500).json({ message: 'Error saving budget', error: error.message });
+        console.error('Error saving budget:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
@@ -114,11 +108,12 @@ const deleteBudgetByCategory = async (req, res) => {
     const { category } = req.params;
     try {
         await prisma.budget.deleteMany({
-            where: { category, userId: req.userId }
+            where: { category, userId: req.userId },
         });
         res.json({ message: 'Budget category deleted for all months' });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting budget', error: error.message });
+        console.error('Error deleting budget:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
@@ -130,36 +125,29 @@ const getIncomes = async (req, res) => {
         });
         res.json(incomes);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching incomes', error: error.message });
+        console.error('Error fetching incomes:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
 const upsertIncome = async (req, res) => {
     const { amount, month } = req.body;
     try {
-        const existing = await prisma.income.findFirst({
-            where: { month, userId: req.userId }
+        // Atomic upsert using the unique constraint on [userId, month]
+        const income = await prisma.income.upsert({
+            where: { userId_month: { userId: req.userId, month } },
+            update: { amount: Number.parseFloat(amount) },
+            create: { amount: Number.parseFloat(amount), month, userId: req.userId },
         });
-
-        let income;
-        if (existing) {
-            income = await prisma.income.update({
-                where: { id: existing.id },
-                data: { amount: parseFloat(amount) }
-            });
-        } else {
-            income = await prisma.income.create({
-                data: { amount: parseFloat(amount), month, userId: req.userId }
-            });
-        }
         res.json(income);
     } catch (error) {
-        res.status(500).json({ message: 'Error saving income', error: error.message });
+        console.error('Error saving income:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 };
 
 module.exports = {
     getExpenses, createExpense, updateExpense, deleteExpense,
     getBudgets, upsertBudget, deleteBudgetByCategory,
-    getIncomes, upsertIncome
+    getIncomes, upsertIncome,
 };

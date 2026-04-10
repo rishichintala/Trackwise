@@ -1,6 +1,6 @@
 const express = require('express');
 const { register, login, getMe, updateCurrency } = require('../controllers/authController');
-const authMiddleware = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware.cjs');
 const router = express.Router();
 
 router.post('/register', register);

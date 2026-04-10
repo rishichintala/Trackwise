@@ -36,6 +36,8 @@ model Budget {
   month    String // YYYY-MM
   userId   String
   user     User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, category, month])
 }
 
 model Income {
@@ -44,4 +46,6 @@ model Income {
   month  String // YYYY-MM
   userId String
   user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month])
 }

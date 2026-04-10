@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../prisma/client.cjs');
 
 // --- Expenses ---
 const getExpenses = async (req, res) => {
@@ -20,7 +19,7 @@ const createExpense = async (req, res) => {
     try {
         const expense = await prisma.expense.create({
             data: {
-                amount: parseFloat(amount),
+                amount: Number.parseFloat(amount),
                 itemName,
                 category,
                 date: new Date(date),
@@ -38,23 +37,20 @@ const updateExpense = async (req, res) => {
     const { id } = req.params;
     const { amount, itemName, category, date } = req.body;
     try {
-        // Ensure user owns this expense (schema does not define composite unique on id+userId)
-        const existing = await prisma.expense.findFirst({
-            where: { id, userId: req.userId }
-        });
-        if (!existing) {
-            return res.status(404).json({ message: 'Expense not found' });
-        }
-
-        const expense = await prisma.expense.update({
-            where: { id },
+        // Atomic ownership check + update in a single query (no TOCTOU gap)
+        const result = await prisma.expense.updateMany({
+            where: { id, userId: req.userId },
             data: {
-                amount: parseFloat(amount),
+                amount: Number.parseFloat(amount),
                 itemName,
                 category,
                 date: new Date(date),
             },
         });
+        if (result.count === 0) {
+            return res.status(404).json({ message: 'Expense not found' });
+        }
+        const expense = await prisma.expense.findUnique({ where: { id } });
         res.json(expense);
     } catch (error) {
         console.error('Error updating expense:', error.message);
@@ -65,15 +61,13 @@ const updateExpense = async (req, res) => {
 const deleteExpense = async (req, res) => {
     const { id } = req.params;
     try {
-        // Ensure user owns this expense (schema does not define composite unique on id+userId)
-        const existing = await prisma.expense.findFirst({
-            where: { id, userId: req.userId }
+        // Atomic ownership check + delete in a single query (no TOCTOU gap)
+        const result = await prisma.expense.deleteMany({
+            where: { id, userId: req.userId },
         });
-        if (!existing) {
+        if (result.count === 0) {
             return res.status(404).json({ message: 'Expense not found' });
         }
-
-        await prisma.expense.delete({ where: { id } });
         res.json({ message: 'Expense deleted' });
     } catch (error) {
         console.error('Error deleting expense:', error.message);
@@ -97,22 +91,12 @@ const getBudgets = async (req, res) => {
 const upsertBudget = async (req, res) => {
     const { category, amount, month } = req.body;
     try {
-        // Find if budget exists for this month/category
-        const existing = await prisma.budget.findFirst({
-            where: { category, month, userId: req.userId }
+        // Atomic upsert using the unique constraint on [userId, category, month]
+        const budget = await prisma.budget.upsert({
+            where: { userId_category_month: { userId: req.userId, category, month } },
+            update: { amount: Number.parseFloat(amount) },
+            create: { category, amount: Number.parseFloat(amount), month, userId: req.userId },
         });
-
-        let budget;
-        if (existing) {
-            budget = await prisma.budget.update({
-                where: { id: existing.id },
-                data: { amount: parseFloat(amount) }
-            });
-        } else {
-            budget = await prisma.budget.create({
-                data: { category, amount: parseFloat(amount), month, userId: req.userId }
-            });
-        }
         res.json(budget);
     } catch (error) {
         console.error('Error saving budget:', error.message);
@@ -124,7 +108,7 @@ const deleteBudgetByCategory = async (req, res) => {
     const { category } = req.params;
     try {
         await prisma.budget.deleteMany({
-            where: { category, userId: req.userId }
+            where: { category, userId: req.userId },
         });
         res.json({ message: 'Budget category deleted for all months' });
     } catch (error) {
@@ -149,21 +133,12 @@ const getIncomes = async (req, res) => {
 const upsertIncome = async (req, res) => {
     const { amount, month } = req.body;
     try {
-        const existing = await prisma.income.findFirst({
-            where: { month, userId: req.userId }
+        // Atomic upsert using the unique constraint on [userId, month]
+        const income = await prisma.income.upsert({
+            where: { userId_month: { userId: req.userId, month } },
+            update: { amount: Number.parseFloat(amount) },
+            create: { amount: Number.parseFloat(amount), month, userId: req.userId },
         });
-
-        let income;
-        if (existing) {
-            income = await prisma.income.update({
-                where: { id: existing.id },
-                data: { amount: parseFloat(amount) }
-            });
-        } else {
-            income = await prisma.income.create({
-                data: { amount: parseFloat(amount), month, userId: req.userId }
-            });
-        }
         res.json(income);
     } catch (error) {
         console.error('Error saving income:', error.message);
@@ -174,5 +149,5 @@ const upsertIncome = async (req, res) => {
 module.exports = {
     getExpenses, createExpense, updateExpense, deleteExpense,
     getBudgets, upsertBudget, deleteBudgetByCategory,
-    getIncomes, upsertIncome
+    getIncomes, upsertIncome,
 };

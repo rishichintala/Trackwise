@@ -13,12 +13,12 @@ import './index.css';   // Tailwind import
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <AuthProvider>
-      <DataProvider>
-        <CurrencyProvider>
+      <CurrencyProvider>
+        <DataProvider>
           <App />
           <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
-        </CurrencyProvider>
-      </DataProvider>
+        </DataProvider>
+      </CurrencyProvider>
     </AuthProvider>
   </BrowserRouter>
 );

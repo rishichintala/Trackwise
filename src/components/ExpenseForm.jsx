@@ -75,7 +75,7 @@ export default function ExpenseForm() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!isIncomeSet) {
@@ -122,8 +122,14 @@ export default function ExpenseForm() {
       id: Date.now(),
     };
 
+    const [warnYear, warnMonth] = selectedMonth.split("-").map(Number);
     const categoryExpenses = expenses
-      .filter((e) => e.category === form.category)
+      .filter((e) => {
+        const d = new Date(e.date);
+        return e.category === form.category &&
+          d.getFullYear() === warnYear &&
+          d.getMonth() === warnMonth - 1;
+      })
       .reduce((acc, e) => acc + Number(e.amount), 0);
 
     const totalWithNew = categoryExpenses + newExpense.amount;
@@ -146,9 +152,13 @@ export default function ExpenseForm() {
       toast(`🚨 You’ve exceeded the budget for ${form.category}!`);
     }
 
-    addExpense(newExpense);
-    toast.success("Expense added");
-    setForm({ amount: "", itemName: "", category: "", date: new Date() });
+    try {
+      await addExpense(newExpense);
+      toast.success("Expense added");
+      setForm({ amount: "", itemName: "", category: "", date: new Date() });
+    } catch {
+      toast.error("Failed to add expense. Please try again.");
+    }
   };
 
   return (

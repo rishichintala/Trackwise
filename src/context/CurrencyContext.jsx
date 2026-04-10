@@ -12,7 +12,8 @@ const currencyOptions = {
 const CurrencyContext = createContext();
 
 export function CurrencyProvider({ children }) {
-  const [currency, setCurrency] = useState("USD"); // Default currency
+  // Default is USD; DataContext overwrites this from the DB on login
+  const [currency, setCurrency] = useState("USD");
 
   const value = {
     currencyCode: currency,

@@ -12,6 +12,7 @@ model User {
   name      String
   email     String    @unique
   password  String
+  currency  String    @default("USD")
   createdAt DateTime  @default(now())
   expenses  Expense[]
   budgets   Budget[]

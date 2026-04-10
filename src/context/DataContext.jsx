@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
+import { useCurrency } from "./CurrencyContext";
 
 const Ctx = createContext();
 export const useData = () => useContext(Ctx);
@@ -12,7 +13,8 @@ const API_BASE = (isNetlify || !import.meta.env.VITE_API_BASE_URL)
   : import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
 
 export function DataProvider({ children }) {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
+  const { setCurrency } = useCurrency();
 
   const [expenses, setExpenses] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -22,40 +24,43 @@ export function DataProvider({ children }) {
 
   const today = new Date();
   const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    return localStorage.getItem("tw_selectedMonth") || defaultMonth;
-  });
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
 
-  // Persist month selection across navigation/reloads
-  useEffect(() => {
-    localStorage.setItem("tw_selectedMonth", selectedMonth);
-  }, [selectedMonth]);
-
-  // Authenticated axios instance
+  // Authenticated axios instance — use an interceptor so the token is read
+  // fresh on every request instead of being baked in at creation time.
+  // This prevents stale 401s when the token changes without a full page reload.
   const api = useMemo(() => {
-    return axios.create({
-      baseURL: API_BASE,
-      headers: { Authorization: `Bearer ${token}` }
+    const instance = axios.create({ baseURL: API_BASE });
+    instance.interceptors.request.use(config => {
+      const currentToken = localStorage.getItem("tw_token");
+      if (currentToken) config.headers.Authorization = `Bearer ${currentToken}`;
+      return config;
     });
-  }, [token]);
+    return instance;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch initial data
+  // Fetch initial data + currency preference from DB
   useEffect(() => {
     if (token) {
       const fetchData = async () => {
         try {
           setDataLoading(true);
-          const [expRes, budRes, incRes] = await Promise.all([
+          const [expRes, budRes, incRes, meRes] = await Promise.all([
             api.get("/expenses"),
             api.get("/budgets"),
-            api.get("/incomes")
+            api.get("/incomes"),
+            api.get("/auth/me"),
           ]);
           setExpenses(expRes.data);
           // Normalize backend Budget(amount) -> UI Budget(limit)
           setBudgets(budRes.data.map(b => ({ ...b, limit: Number(b.amount) })));
           setMonthlyIncomes(incRes.data);
+          // Apply the user's saved currency from DB
+          if (meRes.data?.user?.currency) {
+            setCurrency(meRes.data.user.currency);
+          }
 
-          // Seed custom categories from expenses if empty
+          // Seed custom categories from expenses
           const cats = new Set(expRes.data.map(e => e.category));
           setCustomCategories(Array.from(cats));
         } catch (err) {
@@ -71,7 +76,7 @@ export function DataProvider({ children }) {
       setMonthlyIncomes([]);
       setDataLoading(false);
     }
-  }, [token, api]);
+  }, [token, api, setCurrency]);
 
   /* CRUD helpers that sync with backend */
   const addExpense = async (e) => {
@@ -80,6 +85,7 @@ export function DataProvider({ children }) {
       setExpenses(p => [res.data, ...p]);
     } catch (err) {
       console.error("Failed to add expense", err);
+      throw err;
     }
   };
 
@@ -89,6 +95,7 @@ export function DataProvider({ children }) {
       setExpenses(p => p.map(x => x.id === e.id ? res.data : x));
     } catch (err) {
       console.error("Failed to edit expense", err);
+      throw err;
     }
   };
 
@@ -98,6 +105,7 @@ export function DataProvider({ children }) {
       setExpenses(p => p.filter(x => x.id !== id));
     } catch (err) {
       console.error("Failed to delete expense", err);
+      throw err;
     }
   };
 
@@ -121,6 +129,7 @@ export function DataProvider({ children }) {
       });
     } catch (err) {
       console.error("Failed to save budget", err);
+      throw err;
     }
   };
 
@@ -130,6 +139,7 @@ export function DataProvider({ children }) {
       setBudgets(p => p.filter(x => x.category !== category));
     } catch (err) {
       console.error("Failed to delete budget category", err);
+      throw err;
     }
   };
 
@@ -146,6 +156,18 @@ export function DataProvider({ children }) {
       });
     } catch (err) {
       console.error("Failed to save income", err);
+      throw err;
+    }
+  };
+
+  // Save currency preference to DB and apply it locally
+  const saveCurrency = async (currencyCode) => {
+    try {
+      await api.patch("/auth/me/currency", { currency: currencyCode });
+      setCurrency(currencyCode);
+    } catch (err) {
+      console.error("Failed to save currency", err);
+      throw err;
     }
   };
 
@@ -208,7 +230,7 @@ export function DataProvider({ children }) {
     customCategories, addCategory, delCategory,
     selectedMonth, setSelectedMonth, availableMonths,
     expensesThisMonth, totalThisMonth,
-    dataLoading,
+    dataLoading, saveCurrency,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

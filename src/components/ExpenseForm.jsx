@@ -141,7 +141,7 @@ export default function ExpenseForm() {
       totalWithNew >= 0.8 * relatedBudget.limit &&
       totalWithNew <= relatedBudget.limit
     ) {
-      toast(`⚠️ You’re nearing the budget limit for ${form.category}!`);
+      toast(`⚠️ You're nearing the budget limit for ${form.category}!`);
     }
 
     if (
@@ -149,7 +149,7 @@ export default function ExpenseForm() {
       relatedBudget.notify &&
       totalWithNew > relatedBudget.limit
     ) {
-      toast(`🚨 You’ve exceeded the budget for ${form.category}!`);
+      toast(`🚨 You've exceeded the budget for ${form.category}!`);
     }
 
     try {

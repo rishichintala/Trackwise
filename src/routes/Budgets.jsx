@@ -65,7 +65,7 @@ export default function Budgets() {
   const [form, setForm] = useState({ category: "", limit: "", notify: true });
   const [edit, setEdit] = useState(null);
 
-  // Local copy of the “Monthly Income” input (sync with context when month changes)
+  // Local copy of the "Monthly Income" input (sync with context when month changes)
   const [localIncome, setLocalIncome] = useState(incomeThisMonth || "");
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function Budgets() {
   // Lock the dropdown once ANY income is set in the system
   const currencyLocked = monthlyIncomes && monthlyIncomes.length > 0;
 
-  // Show / hide the “Are you sure you want to reset?” modal
+  // Show / hide the "Are you sure you want to reset?" modal
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
   // Sum up how much has been spent in each category (Current Month Only)
@@ -124,17 +124,17 @@ export default function Budgets() {
     }
   };
 
-  // 2) “Change Currency” button → open a confirmation modal instead of immediately unlocking
+  // 2) "Change Currency" button → open a confirmation modal instead of immediately unlocking
   const handleChangeCurrencyClick = () => {
     setShowCurrencyModal(true);
   };
 
-  // 3) If the user confirms in the modal (“Yes, Reset All”), save new currency to DB and reload
+  // 3) If the user confirms in the modal ("Yes, Reset All"), save new currency to DB and reload
   const confirmResetCurrency = async () => {
     try {
       await saveCurrency(selectedCurrency);
     } catch {
-      toast.error(“Failed to update currency. Please try again.”);
+      toast.error("Failed to update currency. Please try again.");
       return;
     }
     window.location.reload();
@@ -358,11 +358,11 @@ export default function Budgets() {
 
           // 1) Over budget: spent > limit → red
           const overBudget = spent > b.limit;
-          // 2) Exactly at limit → blue (“reached budget”)
+          // 2) Exactly at limit → blue ("reached budget")
           const reachedBudget = spent === b.limit;
-          // 3) Between 80% and just under 100% → orange (“nearing”)
+          // 3) Between 80% and just under 100% → orange ("nearing")
           const nearLimit = spent < b.limit && percentage >= 80;
-          // 4) Under 80% → green (“safe”)
+          // 4) Under 80% → green ("safe")
           const safe = percentage < 80;
 
           const barColor = overBudget

@@ -91,12 +91,20 @@ const getBudgets = async (req, res) => {
 const upsertBudget = async (req, res) => {
     const { category, amount, month } = req.body;
     try {
-        // Atomic upsert using the unique constraint on [userId, category, month]
-        const budget = await prisma.budget.upsert({
-            where: { userId_category_month: { userId: req.userId, category, month } },
-            update: { amount: Number.parseFloat(amount) },
-            create: { category, amount: Number.parseFloat(amount), month, userId: req.userId },
+        const existing = await prisma.budget.findFirst({
+            where: { category, month, userId: req.userId },
         });
+        let budget;
+        if (existing) {
+            budget = await prisma.budget.update({
+                where: { id: existing.id },
+                data: { amount: Number.parseFloat(amount) },
+            });
+        } else {
+            budget = await prisma.budget.create({
+                data: { category, amount: Number.parseFloat(amount), month, userId: req.userId },
+            });
+        }
         res.json(budget);
     } catch (error) {
         console.error('Error saving budget:', error.message);
@@ -133,12 +141,20 @@ const getIncomes = async (req, res) => {
 const upsertIncome = async (req, res) => {
     const { amount, month } = req.body;
     try {
-        // Atomic upsert using the unique constraint on [userId, month]
-        const income = await prisma.income.upsert({
-            where: { userId_month: { userId: req.userId, month } },
-            update: { amount: Number.parseFloat(amount) },
-            create: { amount: Number.parseFloat(amount), month, userId: req.userId },
+        const existing = await prisma.income.findFirst({
+            where: { month, userId: req.userId },
         });
+        let income;
+        if (existing) {
+            income = await prisma.income.update({
+                where: { id: existing.id },
+                data: { amount: Number.parseFloat(amount) },
+            });
+        } else {
+            income = await prisma.income.create({
+                data: { amount: Number.parseFloat(amount), month, userId: req.userId },
+            });
+        }
         res.json(income);
     } catch (error) {
         console.error('Error saving income:', error.message);

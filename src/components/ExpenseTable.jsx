@@ -68,16 +68,20 @@ export default function ExpenseTable() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedExpenses = expensesThisMonth.slice(startIndex, startIndex + itemsPerPage);
 
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     const amount = parseFloat(editing.amount);
     if (!amount || amount <= 0) {
       toast.error("Amount must be greater than 0");
       return;
     }
-    editExpense({ ...editing, amount });
-    toast.success("Expense updated!");
-    setEditing(null);
+    try {
+      await editExpense({ ...editing, amount });
+      toast.success("Expense updated!");
+      setEditing(null);
+    } catch {
+      toast.error("Failed to update expense. Please try again.");
+    }
   };
 
   // Format a stored date string ("YYYY-MM-DDT12:00:00") into local display
@@ -163,9 +167,13 @@ export default function ExpenseTable() {
                             <FaEdit />
                           </button>
                           <button
-                            onClick={() => {
-                              delExpense(exp.id);
-                              toast.success("Expense deleted");
+                            onClick={async () => {
+                              try {
+                                await delExpense(exp.id);
+                                toast.success("Expense deleted");
+                              } catch {
+                                toast.error("Failed to delete expense. Please try again.");
+                              }
                             }}
                             className="text-gray-400 hover:text-red-500 p-1"
                             title="Delete"
@@ -202,7 +210,7 @@ export default function ExpenseTable() {
                     <button onClick={() => setEditing(exp)} className="text-gray-400 hover:text-blue-600 text-base">
                       <FaEdit />
                     </button>
-                    <button onClick={() => { delExpense(exp.id); toast.success("Deleted"); }} className="text-gray-400 hover:text-red-500 text-base">
+                    <button onClick={async () => { try { await delExpense(exp.id); toast.success("Deleted"); } catch { toast.error("Failed to delete. Please try again."); } }} className="text-gray-400 hover:text-red-500 text-base">
                       <FaTrash />
                     </button>
                   </div>

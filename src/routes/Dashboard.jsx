@@ -33,26 +33,17 @@ export default function Dashboard() {
   const {
     budgetsThisMonth,
     incomeThisMonth,
-    totalBalance,
     selectedMonth,
     setSelectedMonth,
     availableMonths,
     expensesThisMonth,
     totalThisMonth
   } = useData();
-  const { currencySymbol, setCurrency } = useCurrency();
+  const { currencySymbol } = useCurrency();
 
   const [year, month] = selectedMonth.split("-").map(Number);
   const selectedDate = new Date(year, month - 1);
   const displayMonthName = selectedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-
-  // Re‐apply currency on mount
-  useMemo(() => {
-    const saved = localStorage.getItem("tw_currency");
-    if (saved) {
-      setCurrency(saved);
-    }
-  }, [setCurrency]);
 
   // Totals (Current Month Focus)
   const monthlySavings = incomeThisMonth - totalThisMonth;

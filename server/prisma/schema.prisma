@@ -12,6 +12,7 @@ model User {
   name      String
   email     String    @unique
   password  String
+  currency  String    @default("USD")
   createdAt DateTime  @default(now())
   expenses  Expense[]
   budgets   Budget[]
@@ -35,6 +36,8 @@ model Budget {
   month    String // YYYY-MM
   userId   String
   user     User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, category, month])
 }
 
 model Income {
@@ -43,4 +46,6 @@ model Income {
   month  String // YYYY-MM
   userId String
   user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month])
 }

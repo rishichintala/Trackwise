@@ -1,6 +1,23 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../prisma/client.cjs');
+const { sendPasswordResetEmail } = require('../services/emailService.cjs');
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function hashResetToken(rawToken) {
+    return crypto.createHash('sha256').update(rawToken).digest('hex');
+}
+
+function getFrontendUrl(req) {
+    if (process.env.FRONTEND_URL) {
+        return process.env.FRONTEND_URL.replace(/\/+$/, '');
+    }
+    const origin = req.get('origin');
+    if (origin) return origin.replace(/\/+$/, '');
+    return 'http://localhost:5173';
+}
 
 const register = async (req, res) => {
     const { name, email, password } = req.body;
@@ -84,4 +101,88 @@ const updateCurrency = async (req, res) => {
     }
 };
 
-module.exports = { register, login, getMe, updateCurrency };
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    const genericMessage = 'If an account exists for that email, a reset link has been sent.';
+
+    if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+
+    try {
+        const user = await prisma.user.findFirst({
+            where: { email: { equals: email.trim(), mode: 'insensitive' } },
+        });
+
+        if (user) {
+            await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+
+            const rawToken = crypto.randomBytes(32).toString('hex');
+            const tokenHash = hashResetToken(rawToken);
+
+            await prisma.passwordResetToken.create({
+                data: {
+                    tokenHash,
+                    userId: user.id,
+                    expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+                },
+            });
+
+            const resetUrl = `${getFrontendUrl(req)}/reset-password?token=${rawToken}`;
+            await sendPasswordResetEmail({
+                to: user.email,
+                resetUrl,
+                userName: user.name,
+            });
+        }
+
+        res.json({ message: genericMessage });
+    } catch (error) {
+        console.error('Forgot password error:', error.message);
+        res.status(500).json({ message: 'Unable to send reset email. Please try again later.' });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+        return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    if (password.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    try {
+        const tokenHash = hashResetToken(token);
+        const resetRecord = await prisma.passwordResetToken.findUnique({
+            where: { tokenHash },
+            include: { user: true },
+        });
+
+        if (!resetRecord || resetRecord.expiresAt < new Date()) {
+            if (resetRecord) {
+                await prisma.passwordResetToken.delete({ where: { id: resetRecord.id } });
+            }
+            return res.status(400).json({ message: 'Invalid or expired reset link' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await prisma.$transaction([
+            prisma.user.update({
+                where: { id: resetRecord.userId },
+                data: { password: hashedPassword },
+            }),
+            prisma.passwordResetToken.deleteMany({ where: { userId: resetRecord.userId } }),
+        ]);
+
+        res.json({ message: 'Password updated successfully. You can now sign in.' });
+    } catch (error) {
+        console.error('Reset password error:', error.message);
+        res.status(500).json({ message: 'An internal server error occurred' });
+    }
+};
+
+module.exports = { register, login, getMe, updateCurrency, forgotPassword, resetPassword };

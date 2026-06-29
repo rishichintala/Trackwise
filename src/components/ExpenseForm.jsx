@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import AppDatePicker from "./AppDatePicker";
 import {
   FaUtensils,
   FaCar,
@@ -239,12 +238,11 @@ export default function ExpenseForm() {
           {/* Date */}
           <div>
             <label className="text-sm text-gray-600">Date</label>
-            <DatePicker
+            <AppDatePicker
               selected={form.date}
               onChange={(date) => setForm({ ...form, date })}
-              className="w-full border p-2 rounded mt-1 disabled:opacity-50"
-              maxDate={new Date()}
               disabled={!isIncomeSet}
+              maxDate={new Date()}
             />
           </div>
         </div>

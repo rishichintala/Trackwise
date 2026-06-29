@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import AppDatePicker, { parseExpenseDate } from "./AppDatePicker";
 import {
   FaUtensils,
   FaCar,
@@ -86,7 +85,7 @@ export default function ExpenseTable() {
 
   // Format a stored date string ("YYYY-MM-DDT12:00:00") into local display
   const formatDate = (dateString) => {
-    const localDate = new Date(dateString); // parsed as local
+    const localDate = parseExpenseDate(dateString);
     return localDate.toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
@@ -324,8 +323,8 @@ export default function ExpenseTable() {
             {/* Date Picker (store as local midday) */}
             <div>
               <label className="text-sm text-gray-600">Date</label>
-              <DatePicker
-                selected={new Date(editing.date)}
+              <AppDatePicker
+                selected={parseExpenseDate(editing.date)}
                 onChange={(date) => {
                   const yyyy = date.getFullYear();
                   const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -337,8 +336,8 @@ export default function ExpenseTable() {
                     date: localMidday,
                   });
                 }}
-                className="w-full border p-2 rounded bg-gray-50 text-gray-800 mt-1"
                 maxDate={new Date()}
+                usePortal
               />
             </div>
 

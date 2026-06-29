@@ -8,15 +8,27 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  name      String
-  email     String    @unique
-  password  String
-  currency  String    @default("USD")
-  createdAt DateTime  @default(now())
-  expenses  Expense[]
-  budgets   Budget[]
-  incomes   Income[]
+  id                  String               @id @default(uuid())
+  name                String
+  email               String               @unique
+  password            String
+  currency            String               @default("USD")
+  createdAt           DateTime             @default(now())
+  expenses            Expense[]
+  budgets             Budget[]
+  incomes             Income[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Expense {

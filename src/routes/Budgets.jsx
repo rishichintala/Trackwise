@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import AppDatePicker from "../components/AppDatePicker";
 import toast from "react-hot-toast";
 import { v4 as uuid } from "uuid";
 import {
@@ -203,16 +202,17 @@ export default function Budgets() {
         <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100">
           <label htmlFor="month-filter-budgets" className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Selected Period:</label>
           <div className="custom-datepicker-wrapper">
-            <DatePicker
-              selected={new Date(year, month - 1)}
+            <AppDatePicker
+              selected={new Date(year, month - 1, 1)}
               onChange={(date) => {
                 const yyyy = date.getFullYear();
                 const mm = String(date.getMonth() + 1).padStart(2, "0");
                 setSelectedMonth(`${yyyy}-${mm}`);
               }}
-              dateFormat="MMM yyyy"
+              dateFormat="MMMM yyyy"
               showMonthYearPicker
-              className="bg-transparent text-sm font-extrabold text-indigo-900 focus:outline-none cursor-pointer w-24 text-center"
+              wrapperClassName="inline-block"
+              className="bg-transparent text-sm font-extrabold text-indigo-900 focus:outline-none cursor-pointer min-w-[140px] text-center border-0 shadow-none"
             />
           </div>
         </div>

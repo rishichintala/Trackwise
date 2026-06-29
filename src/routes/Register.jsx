@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-hot-toast";
-import { FaUser, FaEnvelope, FaLock, FaChartLine } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaChartLine } from "react-icons/fa";
+import PasswordInput from "../components/PasswordInput";
 
 export default function Register() {
     const [name, setName] = useState("");
@@ -66,19 +67,12 @@ export default function Register() {
                                 placeholder="Email address"
                             />
                         </div>
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-600 text-gray-400 transition-colors">
-                                <FaLock />
-                            </div>
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="block w-full pl-11 pr-4 py-3.5 border-2 border-gray-100 rounded-2xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-blue-500 transition-all text-gray-900 sm:text-sm"
-                                placeholder="Password"
-                            />
-                        </div>
+                        <PasswordInput
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Password"
+                            minLength={6}
+                        />
                     </div>
 
                     <div>

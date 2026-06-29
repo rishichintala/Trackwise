@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-hot-toast";
-import { FaEnvelope, FaLock, FaChartLine } from "react-icons/fa";
+import { FaEnvelope, FaChartLine } from "react-icons/fa";
+import PasswordInput from "../components/PasswordInput";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -52,19 +53,20 @@ export default function Login() {
                                 placeholder="Email address"
                             />
                         </div>
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-600 text-gray-400 transition-colors">
-                                <FaLock />
-                            </div>
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="block w-full pl-11 pr-4 py-3.5 border-2 border-gray-100 rounded-2xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-blue-500 transition-all text-gray-900 sm:text-sm"
-                                placeholder="Password"
-                            />
-                        </div>
+                        <PasswordInput
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Password"
+                        />
+                    </div>
+
+                    <div className="flex justify-end -mt-2">
+                        <Link
+                            to="/forgot-password"
+                            className="text-sm font-semibold text-blue-600 hover:text-blue-500 transition-colors"
+                        >
+                            Forgot password?
+                        </Link>
                     </div>
 
                     <div>

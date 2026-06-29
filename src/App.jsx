@@ -6,6 +6,8 @@ import Budgets from './routes/Budgets';
 import Reports from './routes/Reports';
 import Login from './routes/Login';
 import Register from './routes/Register';
+import ForgotPassword from './routes/ForgotPassword';
+import ResetPassword from './routes/ResetPassword';
 import Layout from "./components/Layout";
 
 function ProtectedRoute({ children }) {
@@ -21,6 +23,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 

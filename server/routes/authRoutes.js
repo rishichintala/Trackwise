@@ -1,11 +1,13 @@
 const express = require('express');
-const { register, login, getMe, updateCurrency } = require('../controllers/authController');
+const authController = require('../controllers/authController.cjs');
 const authMiddleware = require('../middleware/authMiddleware.cjs');
 const router = express.Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.get('/me', authMiddleware, getMe);
-router.patch('/me/currency', authMiddleware, updateCurrency);
+router.post('/register', authController.register);
+router.post('/login', authController.login);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+router.get('/me', authMiddleware, authController.getMe);
+router.patch('/me/currency', authMiddleware, authController.updateCurrency);
 
 module.exports = router;

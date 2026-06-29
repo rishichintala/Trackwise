@@ -147,7 +147,7 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     const { token, password } = req.body;
 
-    if (!token || !password) {
+    if (!token || typeof token !== 'string' || !password || typeof password !== 'string') {
         return res.status(400).json({ message: 'Token and new password are required' });
     }
 
@@ -164,7 +164,7 @@ const resetPassword = async (req, res) => {
 
         if (!resetRecord || resetRecord.expiresAt < new Date()) {
             if (resetRecord) {
-                await prisma.passwordResetToken.delete({ where: { id: resetRecord.id } });
+                await prisma.passwordResetToken.deleteMany({ where: { id: resetRecord.id } });
             }
             return res.status(400).json({ message: 'Invalid or expired reset link' });
         }

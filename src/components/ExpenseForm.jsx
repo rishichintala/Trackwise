@@ -240,7 +240,7 @@ export default function ExpenseForm() {
             <label className="text-sm text-gray-600">Date</label>
             <AppDatePicker
               selected={form.date}
-              onChange={(date) => setForm({ ...form, date })}
+              onChange={(date) => setForm({ ...form, date: date || new Date() })}
               disabled={!isIncomeSet}
               maxDate={new Date()}
               className="w-full border border-gray-200 p-2 rounded bg-white text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50"

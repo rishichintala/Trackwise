@@ -72,6 +72,7 @@ export default function Register() {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Password"
                             minLength={6}
+                            autoComplete="new-password"
                         />
                     </div>
 

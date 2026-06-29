@@ -13,8 +13,15 @@ export default function PasswordInput({
   minLength,
   className = "",
   inputClassName: customInputClassName,
+  autoComplete,
 }) {
   const [show, setShow] = useState(false);
+
+  const derivedAutoComplete = autoComplete || (
+    placeholder.toLowerCase().includes("confirm") || placeholder.toLowerCase().includes("new")
+      ? "new-password"
+      : "current-password"
+  );
 
   return (
     <div className={`relative group ${className}`}>
@@ -30,7 +37,7 @@ export default function PasswordInput({
         onChange={onChange}
         className={customInputClassName || inputClassName}
         placeholder={placeholder}
-        autoComplete={placeholder.toLowerCase().includes("confirm") ? "new-password" : "current-password"}
+        autoComplete={derivedAutoComplete}
       />
       <button
         type="button"

@@ -243,6 +243,7 @@ export default function ExpenseForm() {
               onChange={(date) => setForm({ ...form, date })}
               disabled={!isIncomeSet}
               maxDate={new Date()}
+              className="w-full border border-gray-200 p-2 rounded bg-white text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
             />
           </div>
         </div>

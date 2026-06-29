@@ -128,13 +128,15 @@ const forgotPassword = async (req, res) => {
             ]);
 
             const resetUrl = `${getFrontendUrl()}/reset-password?token=${rawToken}`;
-            sendPasswordResetEmail({
-                to: user.email,
-                resetUrl,
-                userName: user.name,
-            }).catch((error) => {
-                console.error('Failed to send password reset email:', error.message);
-            });
+            try {
+                await sendPasswordResetEmail({
+                    to: user.email,
+                    resetUrl,
+                    userName: user.name,
+                });
+            } catch (emailError) {
+                console.error('Failed to send password reset email:', emailError.message);
+            }
         }
 
         res.json({ message: genericMessage });

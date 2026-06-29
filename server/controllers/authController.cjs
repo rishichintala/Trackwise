@@ -10,12 +10,10 @@ function hashResetToken(rawToken) {
     return crypto.createHash('sha256').update(rawToken).digest('hex');
 }
 
-function getFrontendUrl(req) {
+function getFrontendUrl() {
     if (process.env.FRONTEND_URL) {
         return process.env.FRONTEND_URL.replace(/\/+$/, '');
     }
-    const origin = req.get('origin');
-    if (origin) return origin.replace(/\/+$/, '');
     return 'http://localhost:5173';
 }
 
@@ -115,24 +113,27 @@ const forgotPassword = async (req, res) => {
         });
 
         if (user) {
-            await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
-
             const rawToken = crypto.randomBytes(32).toString('hex');
             const tokenHash = hashResetToken(rawToken);
 
-            await prisma.passwordResetToken.create({
-                data: {
-                    tokenHash,
-                    userId: user.id,
-                    expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
-                },
-            });
+            await prisma.$transaction([
+                prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
+                prisma.passwordResetToken.create({
+                    data: {
+                        tokenHash,
+                        userId: user.id,
+                        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+                    },
+                }),
+            ]);
 
-            const resetUrl = `${getFrontendUrl(req)}/reset-password?token=${rawToken}`;
-            await sendPasswordResetEmail({
+            const resetUrl = `${getFrontendUrl()}/reset-password?token=${rawToken}`;
+            sendPasswordResetEmail({
                 to: user.email,
                 resetUrl,
                 userName: user.name,
+            }).catch((error) => {
+                console.error('Failed to send password reset email:', error.message);
             });
         }
 
@@ -146,7 +147,7 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     const { token, password } = req.body;
 
-    if (!token || !password) {
+    if (!token || typeof token !== 'string' || !password || typeof password !== 'string') {
         return res.status(400).json({ message: 'Token and new password are required' });
     }
 
@@ -163,7 +164,7 @@ const resetPassword = async (req, res) => {
 
         if (!resetRecord || resetRecord.expiresAt < new Date()) {
             if (resetRecord) {
-                await prisma.passwordResetToken.delete({ where: { id: resetRecord.id } });
+                await prisma.passwordResetToken.deleteMany({ where: { id: resetRecord.id } });
             }
             return res.status(400).json({ message: 'Invalid or expired reset link' });
         }

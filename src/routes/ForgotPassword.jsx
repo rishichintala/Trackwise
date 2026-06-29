@@ -4,10 +4,9 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { FaEnvelope, FaChartLine, FaArrowLeft } from "react-icons/fa";
 
-const isNetlify = typeof window !== "undefined" && window.location.hostname.includes("netlify.app");
-const API_BASE = (isNetlify || !import.meta.env.VITE_API_BASE_URL)
-  ? "/api"
-  : import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
+  : "/api";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");

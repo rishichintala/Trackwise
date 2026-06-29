@@ -1,3 +1,12 @@
+function escapeHtml(str) {
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
 async function sendPasswordResetEmail({ to, resetUrl, userName }) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
@@ -9,7 +18,7 @@ async function sendPasswordResetEmail({ to, resetUrl, userName }) {
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
         <h2 style="color: #1e40af; margin-bottom: 8px;">Reset your password</h2>
-        <p style="color: #374151; line-height: 1.6;">Hi ${userName || 'there'},</p>
+        <p style="color: #374151; line-height: 1.6;">Hi ${escapeHtml(userName || 'there')},</p>
         <p style="color: #374151; line-height: 1.6;">
           We received a request to reset your Trackwise password. Click the button below to choose a new one.
           This link expires in 1 hour.

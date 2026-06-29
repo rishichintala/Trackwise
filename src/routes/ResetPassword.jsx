@@ -5,10 +5,9 @@ import { toast } from "react-hot-toast";
 import { FaChartLine, FaArrowLeft } from "react-icons/fa";
 import PasswordInput from "../components/PasswordInput";
 
-const isNetlify = typeof window !== "undefined" && window.location.hostname.includes("netlify.app");
-const API_BASE = (isNetlify || !import.meta.env.VITE_API_BASE_URL)
-  ? "/api"
-  : import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
+  : "/api";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();

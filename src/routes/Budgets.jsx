@@ -205,6 +205,7 @@ export default function Budgets() {
             <AppDatePicker
               selected={new Date(year, month - 1, 1)}
               onChange={(date) => {
+                if (!date) return;
                 const yyyy = date.getFullYear();
                 const mm = String(date.getMonth() + 1).padStart(2, "0");
                 setSelectedMonth(`${yyyy}-${mm}`);

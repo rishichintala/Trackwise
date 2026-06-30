@@ -11,26 +11,34 @@ const authMiddleware = async (req, res, next) => {
         if (!rawKey) {
             return res.status(401).json({ message: 'No API key provided' });
         }
+        let apiKey;
         try {
             const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
-            const apiKey = await prisma.apiKey.findUnique({
+            apiKey = await prisma.apiKey.findUnique({
                 where: { keyHash },
                 select: { id: true, userId: true },
             });
-            if (!apiKey) {
-                return res.status(401).json({ message: 'Invalid API key' });
-            }
-            // Fire-and-forget — don't block the request on this update
-            prisma.apiKey.update({
+        } catch (error) {
+            return next(error);
+        }
+
+        if (!apiKey) {
+            return res.status(401).json({ message: 'Invalid API key' });
+        }
+
+        // Awaited so the update completes before serverless context is frozen.
+        // Failure is non-fatal — auth proceeds regardless.
+        try {
+            await prisma.apiKey.update({
                 where: { id: apiKey.id },
                 data: { lastUsedAt: new Date() },
-            }).catch(() => {});
-
-            req.userId = apiKey.userId;
-            return next();
-        } catch (error) {
-            return res.status(401).json({ message: 'API key validation failed' });
+            });
+        } catch (err) {
+            console.error('Failed to update lastUsedAt:', err.message);
         }
+
+        req.userId = apiKey.userId;
+        return next();
     }
 
     // JWT auth path — header: "Bearer <token>"

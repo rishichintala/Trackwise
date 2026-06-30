@@ -4,7 +4,7 @@ const authMiddleware = require('../middleware/authMiddleware.cjs');
 
 const router = express.Router();
 
-router.use(authMiddleware);
+router.use((req, res, next) => authMiddleware(req, res, next).catch(next));
 
 // Expenses
 router.get('/expenses', financialController.getExpenses);

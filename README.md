@@ -15,13 +15,14 @@ Trackwise is a high-performance, full-stack budget management application design
 - 📱 **Mobile-First Design**: A completely revamped responsive UI with dedicated mobile interactions and navigation.
 - 📑 **Financial Reporting**: Export your transaction history to **PDF** or **CSV/Excel** for offline review.
 - 🌍 **Global Support**: Multi-currency support and localized date filtering.
+- 🔗 **Third-Party Integrations**: Generate API keys to connect external apps (e.g. Splito) so your share of a split bill is automatically logged as an expense — no double-entry.
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **Framework**: [React 18](https://reactjs.org/) with Vite
+- **Framework**: [React 19](https://reactjs.org/) with Vite
 - **Styling**: [Tailwind CSS 4.0](https://tailwindcss.com/) (Modern, utility-first design)
 - **State Management**: React Context API + Custom Hooks
 - **Visuals**: [Chart.js](https://www.chartjs.org/) for analytics
@@ -30,7 +31,7 @@ Trackwise is a high-performance, full-stack budget management application design
 ### Backend (Serverless Architecture)
 - **Environment**: Node.js & Express
 - **Compute**: Netlify Serverless Functions (AWS Lambda bridge)
-- **Database**: [PostgreSQL (Neon)](https://neon.tech/)
+- **Database**: [Prisma Postgres](https://www.prisma.io/postgres) (managed PostgreSQL via db.prisma.io)
 - **ORM**: [Prisma](https://www.prisma.io/) for type-safe database queries
 - **Security**: JWT for identity, Bcrypt for hashing, and strict CORS policies
 
@@ -44,6 +45,7 @@ Trackwise is built with production security as a priority:
 - **Strict CORS**: The API only accepts requests from verified production and development origins.
 - **IDOR Protection**: All database queries are strictly scoped to the authenticated `userId`.
 - **Parametrized Queries**: Prisma ORM prevents SQL Injection by design.
+- **API Key Security**: Integration keys use a `tw_live_` prefix + 24 random bytes; only the SHA-256 hash is stored — the raw key is shown once and never retrievable again. Each key is scoped to its owning user, and all revocations are instant.
 
 ---
 

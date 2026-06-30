@@ -4,6 +4,7 @@ import Dashboard from './routes/Dashboard';
 import Expenses from './routes/Expenses';
 import Budgets from './routes/Budgets';
 import Reports from './routes/Reports';
+import Profile from './routes/Profile';
 import Login from './routes/Login';
 import Register from './routes/Register';
 import ForgotPassword from './routes/ForgotPassword';
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
         <Route path="/budgets" element={<ProtectedRoute><Budgets /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       </Routes>
     </div>
   );

@@ -9,6 +9,7 @@ const app = express();
 const prisma = new PrismaClient(); // Re-enabled
 const authRoutes = require('./routes/authRoutes.cjs');
 const financialRoutes = require('./routes/financialRoutes.cjs');
+const integrationRoutes = require('./routes/integrationRoutes.cjs');
 
 // 1. Body Parser FIRST
 app.use(express.json());
@@ -65,6 +66,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 // Routes
 const mainRouter = express.Router();
 mainRouter.use('/auth', authRoutes);
+mainRouter.use('/integrations', integrationRoutes);
 mainRouter.use('/', financialRoutes);
 
 app.use('/api', mainRouter);

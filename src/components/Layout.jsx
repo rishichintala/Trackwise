@@ -55,6 +55,15 @@ export default function Layout({ children }) {
               >
                 <span>Reports</span>
               </NavLink>
+              <NavLink
+                to="/profile"
+                className={({ isActive }) =>
+                  `flex items-center space-x-1 text-gray-600 hover:text-blue-600 ${isActive ? "text-blue-600 font-medium" : ""
+                  }`
+                }
+              >
+                <span>Profile</span>
+              </NavLink>
               <button
                 onClick={logout}
                 className="flex items-center space-x-1 text-red-500 hover:text-red-700 font-medium transition-colors"
@@ -107,7 +116,7 @@ export default function Layout({ children }) {
         {menuOpen && (
           <div className="sm:hidden bg-white border-t border-gray-200">
             <ul className="px-2 pt-2 pb-3 space-y-1">
-              {["dashboard", "expenses", "budgets", "reports"].map((route) => (
+              {["dashboard", "expenses", "budgets", "reports", "profile"].map((route) => (
                 <li key={route}>
                   <NavLink
                     to={`/${route}`}

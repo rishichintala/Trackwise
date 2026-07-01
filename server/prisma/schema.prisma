@@ -18,6 +18,19 @@ model User {
   budgets             Budget[]
   incomes             Income[]
   passwordResetTokens PasswordResetToken[]
+  apiKeys             ApiKey[]
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  keyHash    String    @unique
+  label      String    @default("Splito")
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model PasswordResetToken {

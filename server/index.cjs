@@ -10,6 +10,7 @@ const prisma = new PrismaClient(); // Re-enabled
 const authRoutes = require('./routes/authRoutes.cjs');
 const financialRoutes = require('./routes/financialRoutes.cjs');
 const integrationRoutes = require('./routes/integrationRoutes.cjs');
+const aiRoutes = require('./routes/aiRoutes.cjs');
 
 // 1. Body Parser FIRST
 app.use(express.json());
@@ -68,6 +69,7 @@ const mainRouter = express.Router();
 mainRouter.use('/auth', authRoutes);
 mainRouter.use('/integrations', integrationRoutes);
 mainRouter.use('/', financialRoutes);
+mainRouter.use('/', aiRoutes);
 
 app.use('/api', mainRouter);
 app.use('/', mainRouter);

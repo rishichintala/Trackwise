@@ -1,5 +1,5 @@
 // src/pages/Dashboard.jsx
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { Link } from "react-router-dom";
@@ -15,6 +15,7 @@ import {
   FaChartLine,
   FaQuestion,
   FaTags,
+  FaMagic,
 } from "react-icons/fa";
 
 const categoryIcons = {
@@ -37,9 +38,34 @@ export default function Dashboard() {
     setSelectedMonth,
     availableMonths,
     expensesThisMonth,
-    totalThisMonth
+    totalThisMonth,
+    getInsights,
   } = useData();
   const { currencySymbol } = useCurrency();
+
+  // Keyed by month so an in-flight request for one month can't overwrite the
+  // display after the user has already switched to viewing a different month.
+  const [insightsByMonth, setInsightsByMonth] = useState({});
+  const [loadingMonths, setLoadingMonths] = useState({});
+  const [errorsByMonth, setErrorsByMonth] = useState({});
+
+  const insight = insightsByMonth[selectedMonth] || null;
+  const insightLoading = loadingMonths[selectedMonth] || false;
+  const insightError = errorsByMonth[selectedMonth] || null;
+
+  const handleGenerateInsights = async () => {
+    const targetMonth = selectedMonth;
+    setLoadingMonths(prev => ({ ...prev, [targetMonth]: true }));
+    setErrorsByMonth(prev => ({ ...prev, [targetMonth]: null }));
+    try {
+      const text = await getInsights(targetMonth);
+      setInsightsByMonth(prev => ({ ...prev, [targetMonth]: text }));
+    } catch {
+      setErrorsByMonth(prev => ({ ...prev, [targetMonth]: "Couldn't generate insights right now. Please try again." }));
+    } finally {
+      setLoadingMonths(prev => ({ ...prev, [targetMonth]: false }));
+    }
+  };
 
   const [year, month] = selectedMonth.split("-").map(Number);
   const selectedDate = new Date(year, month - 1);
@@ -151,6 +177,36 @@ export default function Dashboard() {
           </h3>
         </div>
 
+      </div>
+
+      {/* ========== AI Spending Insights ========== */}
+      <div className="bg-white rounded-2xl shadow-xl p-6 mb-10 border-b-4 border-indigo-500">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 rounded-lg">
+              <FaMagic className="text-indigo-500 text-lg" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">AI Spending Insights</h2>
+              <p className="text-gray-500 text-sm">Get an AI-generated summary of your {displayMonthName} spending.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleGenerateInsights}
+            disabled={insightLoading}
+            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+          >
+            {insightLoading && "Thinking..."}
+            {!insightLoading && (insight ? "Regenerate" : "Generate Insights")}
+          </button>
+        </div>
+
+        {insightError && (
+          <p className="text-red-500 text-sm mt-4">{insightError}</p>
+        )}
+        {insight && !insightError && (
+          <p className="text-gray-700 text-sm mt-4 leading-relaxed whitespace-pre-line">{insight}</p>
+        )}
       </div>
 
       {/* ========== 2) Recent Transactions ========== */}

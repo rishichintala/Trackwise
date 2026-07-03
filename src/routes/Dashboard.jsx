@@ -1,5 +1,5 @@
 // src/pages/Dashboard.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { Link } from "react-router-dom";
@@ -43,26 +43,27 @@ export default function Dashboard() {
   } = useData();
   const { currencySymbol } = useCurrency();
 
-  const [insight, setInsight] = useState(null);
-  const [insightLoading, setInsightLoading] = useState(false);
-  const [insightError, setInsightError] = useState(null);
+  // Keyed by month so an in-flight request for one month can't overwrite the
+  // display after the user has already switched to viewing a different month.
+  const [insightsByMonth, setInsightsByMonth] = useState({});
+  const [loadingMonths, setLoadingMonths] = useState({});
+  const [errorsByMonth, setErrorsByMonth] = useState({});
 
-  // Clear any previously generated insight when the viewed month changes
-  useEffect(() => {
-    setInsight(null);
-    setInsightError(null);
-  }, [selectedMonth]);
+  const insight = insightsByMonth[selectedMonth] || null;
+  const insightLoading = loadingMonths[selectedMonth] || false;
+  const insightError = errorsByMonth[selectedMonth] || null;
 
   const handleGenerateInsights = async () => {
-    setInsightLoading(true);
-    setInsightError(null);
+    const targetMonth = selectedMonth;
+    setLoadingMonths(prev => ({ ...prev, [targetMonth]: true }));
+    setErrorsByMonth(prev => ({ ...prev, [targetMonth]: null }));
     try {
-      const text = await getInsights(selectedMonth);
-      setInsight(text);
+      const text = await getInsights(targetMonth);
+      setInsightsByMonth(prev => ({ ...prev, [targetMonth]: text }));
     } catch {
-      setInsightError("Couldn't generate insights right now. Please try again.");
+      setErrorsByMonth(prev => ({ ...prev, [targetMonth]: "Couldn't generate insights right now. Please try again." }));
     } finally {
-      setInsightLoading(false);
+      setLoadingMonths(prev => ({ ...prev, [targetMonth]: false }));
     }
   };
 

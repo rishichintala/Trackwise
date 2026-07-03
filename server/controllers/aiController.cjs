@@ -4,6 +4,10 @@ const prisma = require('../prisma/client.cjs');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const getInsights = async (req, res) => {
+    if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ message: 'Gemini API key is not configured on the server.' });
+    }
+
     const month = /^\d{4}-\d{2}$/.test(req.query.month || '')
         ? req.query.month
         : new Date().toISOString().slice(0, 7);
@@ -83,7 +87,7 @@ ${summaryLines}`;
 
         res.json({ insights });
     } catch (error) {
-        console.error('Error generating insights:', error.message);
+        console.error('Error generating insights:', error?.message || error);
         res.status(500).json({ message: 'Failed to generate insights' });
     }
 };

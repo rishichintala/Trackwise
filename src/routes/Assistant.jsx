@@ -37,6 +37,10 @@ export default function Assistant() {
       setMessages(m => [...m, { role: "assistant", content: reply }]);
     } catch {
       setError("Couldn't get a response right now. Please try again.");
+      // Drop the optimistically-added message so a failed turn doesn't leave a
+      // dangling unanswered question in state (or in history sent next request).
+      setMessages(prev => prev.slice(0, -1));
+      if (text === undefined) setInput(question);
     } finally {
       setSending(false);
     }

@@ -61,9 +61,12 @@ const getInsights = async (req, res) => {
         // Pre-compute budget status and month-over-month deltas in code rather than
         // asking the model to do the arithmetic itself — it's easy for an LLM to
         // misjudge "$180 vs $100" as fine, or drop a flagged category entirely.
-        const categoryRows = Object.entries(spentByCategory)
-            .sort((a, b) => b[1] - a[1])
-            .map(([category, spent]) => {
+        // Union current + previous month categories so a category the user dropped
+        // to $0 this month (arguably the best trend to surface) isn't silently lost.
+        const allCategories = new Set([...Object.keys(spentByCategory), ...Object.keys(prevSpentByCategory)]);
+        const categoryRows = Array.from(allCategories)
+            .map(category => {
+                const spent = spentByCategory[category] || 0;
                 const budget = budgets.find(b => b.category === category);
                 let status = 'no budget set';
                 let limit = null;
@@ -167,8 +170,8 @@ const chat = async (req, res) => {
                 where: { userId: req.userId, date: { gte: windowStart, lt: windowEnd } },
                 orderBy: { date: 'desc' },
             }),
-            prisma.budget.findMany({ where: { userId: req.userId } }),
-            prisma.income.findMany({ where: { userId: req.userId } }),
+            prisma.budget.findMany({ where: { userId: req.userId, month: { gte: oldestMonth, lte: currentMonth } } }),
+            prisma.income.findMany({ where: { userId: req.userId, month: { gte: oldestMonth, lte: currentMonth } } }),
         ]);
 
         // Aggregate per month+category so "how much did I spend on X in June" or
@@ -194,7 +197,6 @@ const chat = async (req, res) => {
         }).join('\n');
 
         const budgetLines = budgets
-            .filter(b => b.month >= oldestMonth)
             .map(b => `${b.month} ${b.category}: budget $${Number(b.amount).toFixed(2)}`)
             .join('\n') || 'No budgets set in this window.';
 
@@ -204,6 +206,7 @@ const chat = async (req, res) => {
             .join('\n');
 
         const historyText = history
+            .filter(h => h && typeof h.content === 'string')
             .map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`)
             .join('\n');
 

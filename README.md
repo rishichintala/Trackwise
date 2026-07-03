@@ -34,6 +34,11 @@ Trackwise is a high-performance, full-stack budget management application design
 - Date-range filter before exporting
 - Multi-currency support with localized number formatting
 
+### AI-Powered Insights & Assistant (Gemini)
+- **AI Spending Insights** (Dashboard) — a one-click, AI-generated summary of the selected month's spending: biggest category, month-over-month trend per category, and any category that's over or near its budget. Budget status and trend percentages are computed in code and handed to the model as facts rather than left for it to calculate, so the numbers stay accurate.
+- **Assistant** (`/assistant`) — a chat interface for free-form questions about your spending over the trailing 6 months (e.g. *"How much did I spend on Dining last month?"*, *"Which category has grown the most?"*, *"What was my biggest single purchase?"*). Answers are grounded strictly in your own aggregated and itemized transaction data; questions outside that 6-month window get an honest "I don't have that data" instead of a guess.
+- Both features are powered by the Gemini API (`gemini-2.5-flash`) and require a `GEMINI_API_KEY` — see [Local Development](#local-development) and [Deployment](#deployment-netlify) below.
+
 ### Authentication & Security
 - Email + password sign-up and login
 - JWT-secured API (tokens expire; refresh on re-login)
@@ -103,6 +108,7 @@ Splito is a companion bill-splitting app. When your group scans receipts and spl
 - **Database:** Prisma Postgres (managed PostgreSQL via db.prisma.io)
 - **ORM:** Prisma (type-safe queries, automatic migrations)
 - **Auth:** JWT + Bcrypt
+- **AI:** Google Gemini API (`gemini-2.5-flash`) for spending insights and the chat assistant
 
 ---
 
@@ -129,10 +135,14 @@ cd Trackwise
 ```
 
 ### 2. Configure environment variables
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory (see `.env.example` for the full list):
 ```env
 DATABASE_URL="your-postgresql-connection-url"
 JWT_SECRET="your-32-char-or-longer-secret"
+RESEND_API_KEY="your-resend-api-key"        # transactional email (password reset)
+RESEND_FROM_EMAIL="Trackwise <noreply@yourdomain.com>"
+FRONTEND_URL="http://localhost:5173"        # used in reset-password email links
+GEMINI_API_KEY="your-gemini-api-key"        # AI spending insights + assistant (server-side only)
 ```
 
 ### 3. Install dependencies and sync the database
@@ -161,7 +171,10 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 ## Deployment (Netlify)
 
 1. Connect the repo to Netlify
-2. Add `DATABASE_URL` and `JWT_SECRET` in **Site configuration → Environment variables**
+2. Add the following in **Site configuration → Environment variables**:
+   - `DATABASE_URL`, `JWT_SECRET`
+   - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL` (password reset emails)
+   - `GEMINI_API_KEY` (AI spending insights + assistant — server-side only, never exposed to the browser)
 3. Deploy — Prisma migrations run automatically on first request
 4. The live URL (`https://trackyourbudgetwise.netlify.app`) is what Splito uses as `TRACKWISE_API_URL`
 

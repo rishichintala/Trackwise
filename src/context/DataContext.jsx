@@ -176,6 +176,11 @@ export function DataProvider({ children }) {
     return res.data.insights;
   };
 
+  const askAssistant = async (message, history) => {
+    const res = await api.post("/chat", { message, history });
+    return res.data.reply;
+  };
+
   const addCategory = name => {
     if (!customCategories.includes(name)) {
       setCustomCategories(p => [...p, name]);
@@ -235,7 +240,7 @@ export function DataProvider({ children }) {
     customCategories, addCategory, delCategory,
     selectedMonth, setSelectedMonth, availableMonths,
     expensesThisMonth, totalThisMonth,
-    dataLoading, saveCurrency, getInsights,
+    dataLoading, saveCurrency, getInsights, askAssistant,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

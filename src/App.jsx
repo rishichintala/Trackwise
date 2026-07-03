@@ -4,6 +4,7 @@ import Dashboard from './routes/Dashboard';
 import Expenses from './routes/Expenses';
 import Budgets from './routes/Budgets';
 import Reports from './routes/Reports';
+import Assistant from './routes/Assistant';
 import Profile from './routes/Profile';
 import Login from './routes/Login';
 import Register from './routes/Register';
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
         <Route path="/budgets" element={<ProtectedRoute><Budgets /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/assistant" element={<ProtectedRoute><Assistant /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       </Routes>
     </div>

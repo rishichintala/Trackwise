@@ -1,12 +1,13 @@
 import { Link, useLocation } from 'react-router';
 import { motion } from 'motion/react';
-import { ChartPieIcon, BanknotesIcon } from '@heroicons/react/24/outline';
+import { ChartPieIcon, BanknotesIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const links = [
-  { to: '/dashboard', label: 'Dashboard', icon: ChartPieIcon  },
-  { to: '/expenses',  label: 'Expenses',  icon: BanknotesIcon },
-  { to: '/budgets',   label: 'Budgets',   icon: BanknotesIcon },
-  { to: '/reports',   label: 'Reports',   icon: ChartPieIcon  },
+  { to: '/dashboard',  label: 'Dashboard',  icon: ChartPieIcon  },
+  { to: '/expenses',   label: 'Expenses',   icon: BanknotesIcon },
+  { to: '/budgets',    label: 'Budgets',    icon: BanknotesIcon },
+  { to: '/reports',    label: 'Reports',    icon: ChartPieIcon  },
+  { to: '/assistant',  label: 'Assistant',  icon: SparklesIcon  },
 ];
 
 export default function Navbar() {

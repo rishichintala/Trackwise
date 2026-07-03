@@ -171,6 +171,11 @@ export function DataProvider({ children }) {
     }
   };
 
+  const getInsights = async (month) => {
+    const res = await api.get("/insights", { params: { month } });
+    return res.data.insights;
+  };
+
   const addCategory = name => {
     if (!customCategories.includes(name)) {
       setCustomCategories(p => [...p, name]);
@@ -230,7 +235,7 @@ export function DataProvider({ children }) {
     customCategories, addCategory, delCategory,
     selectedMonth, setSelectedMonth, availableMonths,
     expensesThisMonth, totalThisMonth,
-    dataLoading, saveCurrency,
+    dataLoading, saveCurrency, getInsights,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

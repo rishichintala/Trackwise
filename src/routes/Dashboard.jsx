@@ -1,5 +1,5 @@
 // src/pages/Dashboard.jsx
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { Link } from "react-router-dom";
@@ -15,6 +15,7 @@ import {
   FaChartLine,
   FaQuestion,
   FaTags,
+  FaMagic,
 } from "react-icons/fa";
 
 const categoryIcons = {
@@ -37,9 +38,33 @@ export default function Dashboard() {
     setSelectedMonth,
     availableMonths,
     expensesThisMonth,
-    totalThisMonth
+    totalThisMonth,
+    getInsights,
   } = useData();
   const { currencySymbol } = useCurrency();
+
+  const [insight, setInsight] = useState(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [insightError, setInsightError] = useState(null);
+
+  // Clear any previously generated insight when the viewed month changes
+  useEffect(() => {
+    setInsight(null);
+    setInsightError(null);
+  }, [selectedMonth]);
+
+  const handleGenerateInsights = async () => {
+    setInsightLoading(true);
+    setInsightError(null);
+    try {
+      const text = await getInsights(selectedMonth);
+      setInsight(text);
+    } catch {
+      setInsightError("Couldn't generate insights right now. Please try again.");
+    } finally {
+      setInsightLoading(false);
+    }
+  };
 
   const [year, month] = selectedMonth.split("-").map(Number);
   const selectedDate = new Date(year, month - 1);
@@ -151,6 +176,36 @@ export default function Dashboard() {
           </h3>
         </div>
 
+      </div>
+
+      {/* ========== AI Spending Insights ========== */}
+      <div className="bg-white rounded-2xl shadow-xl p-6 mb-10 border-b-4 border-indigo-500">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 rounded-lg">
+              <FaMagic className="text-indigo-500 text-lg" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">AI Spending Insights</h2>
+              <p className="text-gray-500 text-sm">Get an AI-generated summary of your {displayMonthName} spending.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleGenerateInsights}
+            disabled={insightLoading}
+            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+          >
+            {insightLoading && "Thinking..."}
+            {!insightLoading && (insight ? "Regenerate" : "Generate Insights")}
+          </button>
+        </div>
+
+        {insightError && (
+          <p className="text-red-500 text-sm mt-4">{insightError}</p>
+        )}
+        {insight && !insightError && (
+          <p className="text-gray-700 text-sm mt-4 leading-relaxed whitespace-pre-line">{insight}</p>
+        )}
       </div>
 
       {/* ========== 2) Recent Transactions ========== */}

@@ -7,5 +7,6 @@ const router = express.Router();
 router.use((req, res, next) => authMiddleware(req, res, next).catch(next));
 
 router.get('/insights', aiController.getInsights);
+router.post('/chat', aiController.chat);
 
 module.exports = router;

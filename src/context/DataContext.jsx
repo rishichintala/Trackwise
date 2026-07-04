@@ -181,6 +181,11 @@ export function DataProvider({ children }) {
     return res.data.reply;
   };
 
+  const getAiUsage = async () => {
+    const res = await api.get("/ai-usage");
+    return res.data;
+  };
+
   const addCategory = name => {
     if (!customCategories.includes(name)) {
       setCustomCategories(p => [...p, name]);
@@ -240,7 +245,7 @@ export function DataProvider({ children }) {
     customCategories, addCategory, delCategory,
     selectedMonth, setSelectedMonth, availableMonths,
     expensesThisMonth, totalThisMonth,
-    dataLoading, saveCurrency, getInsights, askAssistant,
+    dataLoading, saveCurrency, getInsights, askAssistant, getAiUsage,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

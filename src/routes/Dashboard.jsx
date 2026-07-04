@@ -60,8 +60,10 @@ export default function Dashboard() {
     try {
       const text = await getInsights(targetMonth);
       setInsightsByMonth(prev => ({ ...prev, [targetMonth]: text }));
-    } catch {
-      setErrorsByMonth(prev => ({ ...prev, [targetMonth]: "Couldn't generate insights right now. Please try again." }));
+    } catch (err) {
+      const serverMessage = err.response?.data?.message;
+      const fallback = "Couldn't generate insights right now. Please try again.";
+      setErrorsByMonth(prev => ({ ...prev, [targetMonth]: serverMessage || fallback }));
     } finally {
       setLoadingMonths(prev => ({ ...prev, [targetMonth]: false }));
     }

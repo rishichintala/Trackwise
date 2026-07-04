@@ -25,6 +25,36 @@ const sumByCategory = (expenses) => expenses.reduce((acc, e) => {
     return acc;
 }, {});
 
+// Per-user daily caps on Gemini-backed endpoints. The app runs on stateless
+// serverless functions with no durable in-memory state, and registration has
+// no verification step, so this is backed by the DB rather than an in-memory
+// limiter — otherwise a scripted loop of free accounts could run up real
+// Gemini API cost with no friction (this repo is public).
+const DAILY_INSIGHTS_LIMIT = 3;
+const DAILY_CHAT_LIMIT = 5;
+const CHAT_MAX_MESSAGE_LENGTH = 1000;
+
+const todayUtc = () => new Date().toISOString().slice(0, 10);
+
+// Not fully race-proof under concurrent requests (read-then-write), which is
+// an acceptable tradeoff here: the goal is deterring scripted abuse, not
+// enforcing a hard security boundary — a determined attacker can already just
+// create another free account, which the per-account cap doesn't defend against.
+const consumeDailyQuota = async (userId, field, limit) => {
+    const date = todayUtc();
+    const usage = await prisma.aiUsage.upsert({
+        where: { userId_date: { userId, date } },
+        create: { userId, date },
+        update: {},
+    });
+    if (usage[field] >= limit) return false;
+    await prisma.aiUsage.update({
+        where: { userId_date: { userId, date } },
+        data: { [field]: { increment: 1 } },
+    });
+    return true;
+};
+
 const getInsights = async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({ message: 'Gemini API key is not configured on the server.' });
@@ -51,6 +81,11 @@ const getInsights = async (req, res) => {
 
         if (expenses.length === 0) {
             return res.json({ insights: "No expenses logged for this month yet — add a few transactions and check back for insights." });
+        }
+
+        const allowed = await consumeDailyQuota(req.userId, 'insightsCount', DAILY_INSIGHTS_LIMIT);
+        if (!allowed) {
+            return res.status(429).json({ message: `You've reached today's limit of ${DAILY_INSIGHTS_LIMIT} AI insight generations. Try again tomorrow.` });
         }
 
         const spentByCategory = sumByCategory(expenses);
@@ -157,6 +192,9 @@ const chat = async (req, res) => {
     if (!message) {
         return res.status(400).json({ message: 'A message is required.' });
     }
+    if (message.length > CHAT_MAX_MESSAGE_LENGTH) {
+        return res.status(400).json({ message: `Message is too long (max ${CHAT_MAX_MESSAGE_LENGTH} characters).` });
+    }
     const history = Array.isArray(req.body?.history) ? req.body.history.slice(-CHAT_HISTORY_TURNS) : [];
 
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -165,6 +203,11 @@ const chat = async (req, res) => {
     const { end: windowEnd } = monthToUtcRange(currentMonth);
 
     try {
+        const allowed = await consumeDailyQuota(req.userId, 'chatCount', DAILY_CHAT_LIMIT);
+        if (!allowed) {
+            return res.status(429).json({ message: `You've reached today's limit of ${DAILY_CHAT_LIMIT} assistant messages. Try again tomorrow.` });
+        }
+
         const [expenses, budgets, incomes] = await Promise.all([
             prisma.expense.findMany({
                 where: { userId: req.userId, date: { gte: windowStart, lt: windowEnd } },

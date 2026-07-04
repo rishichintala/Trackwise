@@ -19,6 +19,7 @@ model User {
   incomes             Income[]
   passwordResetTokens PasswordResetToken[]
   apiKeys             ApiKey[]
+  aiUsage             AiUsage[]
 }
 
 model ApiKey {
@@ -73,4 +74,18 @@ model Income {
   user   User   @relation(fields: [userId], references: [id])
 
   @@unique([userId, month])
+}
+
+// Per-user daily counters for Gemini-backed endpoints, to bound worst-case
+// API cost since the app runs on stateless serverless functions (no
+// in-memory rate limiter survives between invocations).
+model AiUsage {
+  id            String @id @default(uuid())
+  userId        String
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date          String // YYYY-MM-DD (UTC)
+  insightsCount Int    @default(0)
+  chatCount     Int    @default(0)
+
+  @@unique([userId, date])
 }

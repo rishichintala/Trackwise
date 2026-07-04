@@ -10,6 +10,9 @@ const SUGGESTIONS = [
   "Am I spending more than I earn?",
 ];
 
+// Must match CHAT_MAX_MESSAGE_LENGTH in server/controllers/aiController.cjs
+const CHAT_MAX_MESSAGE_LENGTH = 1000;
+
 export default function Assistant() {
   const { askAssistant } = useData();
   const [messages, setMessages] = useState([]);
@@ -35,8 +38,9 @@ export default function Assistant() {
     try {
       const reply = await askAssistant(question, history);
       setMessages(m => [...m, { role: "assistant", content: reply }]);
-    } catch {
-      setError("Couldn't get a response right now. Please try again.");
+    } catch (err) {
+      const serverMessage = err?.response?.data?.message;
+      setError(serverMessage || "Couldn't get a response right now. Please try again.");
       // Drop the optimistically-added message so a failed turn doesn't leave a
       // dangling unanswered question in state (or in history sent next request).
       setMessages(prev => prev.slice(0, -1));
@@ -108,6 +112,7 @@ export default function Assistant() {
           placeholder="Ask about your spending..."
           className="flex-1 px-3 py-2 bg-transparent focus:outline-none text-gray-800"
           disabled={sending}
+          maxLength={CHAT_MAX_MESSAGE_LENGTH}
         />
         <button
           type="submit"

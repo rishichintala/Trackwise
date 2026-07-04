@@ -25,6 +25,69 @@ const sumByCategory = (expenses) => expenses.reduce((acc, e) => {
     return acc;
 }, {});
 
+// Per-user daily caps on Gemini-backed endpoints. The app runs on stateless
+// serverless functions with no durable in-memory state, and registration has
+// no verification step, so this is backed by the DB rather than an in-memory
+// limiter — otherwise a scripted loop of free accounts could run up real
+// Gemini API cost with no friction (this repo is public).
+const DAILY_INSIGHTS_LIMIT = 3;
+const DAILY_CHAT_LIMIT = 5;
+const CHAT_MAX_MESSAGE_LENGTH = 1000;
+// Same 1000-char ceiling applied to what comes back from Gemini, not just
+// what goes in. The hard guarantee is the character truncation below, applied
+// to the final text — NOT maxOutputTokens. gemini-2.5-flash spends an
+// unpredictable chunk of its output-token budget on internal "thinking"
+// before any visible text, and this SDK (the legacy @google/generative-ai
+// package) has no way to disable that; a tight maxOutputTokens (tested down
+// to 900) got cut off mid-thought with as little as 40-120 visible characters
+// — worse than no cap. 4096 was the smallest budget that reliably finished
+// with a real answer (finishReason "STOP") across repeated tests against
+// both prompts, so it's set generously high as a runaway-cost backstop only;
+// truncateResponse() is what actually enforces the 1000-char limit.
+const AI_RESPONSE_MAX_LENGTH = 1000;
+const AI_RESPONSE_MAX_OUTPUT_TOKENS = 4096;
+
+const todayUtc = () => new Date().toISOString().slice(0, 10);
+
+const truncateResponse = (text, max = AI_RESPONSE_MAX_LENGTH) => {
+    const str = typeof text === 'string' ? text : '';
+    return str.length > max ? `${str.slice(0, max - 1).trimEnd()}…` : str;
+};
+
+// Not fully race-proof under concurrent requests (read-then-write), which is
+// an acceptable tradeoff here: the goal is deterring scripted abuse, not
+// enforcing a hard security boundary — a determined attacker can already just
+// create another free account, which the per-account cap doesn't defend against.
+const consumeDailyQuota = async (userId, field, limit) => {
+    const date = todayUtc();
+    const usage = await prisma.aiUsage.upsert({
+        where: { userId_date: { userId, date } },
+        create: { userId, date },
+        update: {},
+    });
+    if (usage[field] >= limit) return false;
+    await prisma.aiUsage.update({
+        where: { userId_date: { userId, date } },
+        data: { [field]: { increment: 1 } },
+    });
+    return true;
+};
+
+// Called when a quota-consuming request fails after the quota was already
+// taken, so a Gemini/network failure doesn't cost the user one of their
+// limited daily attempts. Best-effort: if the refund itself fails, log and
+// move on rather than letting a bookkeeping error mask the original failure.
+const refundDailyQuota = async (userId, field) => {
+    try {
+        await prisma.aiUsage.update({
+            where: { userId_date: { userId, date: todayUtc() } },
+            data: { [field]: { decrement: 1 } },
+        });
+    } catch (err) {
+        console.error('Failed to refund daily quota:', err?.message || err);
+    }
+};
+
 const getInsights = async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({ message: 'Gemini API key is not configured on the server.' });
@@ -37,6 +100,7 @@ const getInsights = async (req, res) => {
     const { start: startDate, end: endDate } = monthToUtcRange(month);
     const { start: prevStartDate, end: prevEndDate } = monthToUtcRange(prevMonth);
 
+    let quotaConsumed = false;
     try {
         const [expenses, prevExpenses, budgets, income] = await Promise.all([
             prisma.expense.findMany({
@@ -52,6 +116,12 @@ const getInsights = async (req, res) => {
         if (expenses.length === 0) {
             return res.json({ insights: "No expenses logged for this month yet — add a few transactions and check back for insights." });
         }
+
+        const allowed = await consumeDailyQuota(req.userId, 'insightsCount', DAILY_INSIGHTS_LIMIT);
+        if (!allowed) {
+            return res.status(429).json({ message: `You've reached today's limit of ${DAILY_INSIGHTS_LIMIT} AI insight generations. Try again tomorrow.` });
+        }
+        quotaConsumed = true;
 
         const spentByCategory = sumByCategory(expenses);
         const prevSpentByCategory = sumByCategory(prevExpenses);
@@ -133,12 +203,16 @@ Total spent this month: $${totalSpent.toFixed(2)}. ${totalTrendLine}
 Spending by category (status and trend already computed, just relay them):
 ${summaryLines}`;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            generationConfig: { maxOutputTokens: AI_RESPONSE_MAX_OUTPUT_TOKENS },
+        });
         const result = await model.generateContent(prompt);
-        const insights = result.response.text().trim();
+        const insights = truncateResponse(result.response.text().trim());
 
         res.json({ insights });
     } catch (error) {
+        if (quotaConsumed) await refundDailyQuota(req.userId, 'insightsCount');
         console.error('Error generating insights:', error?.message || error);
         res.status(500).json({ message: 'Failed to generate insights' });
     }
@@ -157,6 +231,9 @@ const chat = async (req, res) => {
     if (!message) {
         return res.status(400).json({ message: 'A message is required.' });
     }
+    if (message.length > CHAT_MAX_MESSAGE_LENGTH) {
+        return res.status(400).json({ message: `Message is too long (max ${CHAT_MAX_MESSAGE_LENGTH} characters).` });
+    }
     const history = Array.isArray(req.body?.history) ? req.body.history.slice(-CHAT_HISTORY_TURNS) : [];
 
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -164,7 +241,14 @@ const chat = async (req, res) => {
     const { start: windowStart } = monthToUtcRange(oldestMonth);
     const { end: windowEnd } = monthToUtcRange(currentMonth);
 
+    let quotaConsumed = false;
     try {
+        const allowed = await consumeDailyQuota(req.userId, 'chatCount', DAILY_CHAT_LIMIT);
+        if (!allowed) {
+            return res.status(429).json({ message: `You've reached today's limit of ${DAILY_CHAT_LIMIT} assistant messages. Try again tomorrow.` });
+        }
+        quotaConsumed = true;
+
         const [expenses, budgets, incomes] = await Promise.all([
             prisma.expense.findMany({
                 where: { userId: req.userId, date: { gte: windowStart, lt: windowEnd } },
@@ -232,12 +316,16 @@ ${itemizedLines || 'No expenses recorded in this window.'}
 ${historyText ? `Recent conversation:\n${historyText}\n` : ''}
 User: ${message}`;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            generationConfig: { maxOutputTokens: AI_RESPONSE_MAX_OUTPUT_TOKENS },
+        });
         const result = await model.generateContent(prompt);
-        const reply = result.response.text().trim();
+        const reply = truncateResponse(result.response.text().trim());
 
         res.json({ reply });
     } catch (error) {
+        if (quotaConsumed) await refundDailyQuota(req.userId, 'chatCount');
         console.error('Error in AI chat:', error?.message || error);
         res.status(500).json({ message: 'Failed to get a response' });
     }

@@ -14,12 +14,22 @@ const SUGGESTIONS = [
 const CHAT_MAX_MESSAGE_LENGTH = 1000;
 
 export default function Assistant() {
-  const { askAssistant } = useData();
+  const { askAssistant, getAiUsage } = useData();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const bottomRef = useRef(null);
+
+  // Daily message quota — fetched once so the user can see how many messages
+  // they have left before they hit the limit, rather than finding out only
+  // after a surprise 429.
+  const [chatUsage, setChatUsage] = useState(null);
+  useEffect(() => {
+    getAiUsage().then(u => setChatUsage(u.chat)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const chatExhausted = chatUsage && chatUsage.used >= chatUsage.limit;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,7 +37,7 @@ export default function Assistant() {
 
   const send = async (text) => {
     const question = (text ?? input).trim();
-    if (!question || sending) return;
+    if (!question || sending || chatExhausted) return;
 
     const history = messages.map(({ role, content }) => ({ role, content }));
     const nextMessages = [...messages, { role: "user", content: question }];
@@ -38,6 +48,9 @@ export default function Assistant() {
     try {
       const reply = await askAssistant(question, history);
       setMessages(m => [...m, { role: "assistant", content: reply }]);
+      // Mirrors the backend: a successful call consumed one of today's
+      // attempts, a failed one doesn't (it's refunded server-side).
+      setChatUsage(prev => prev && { ...prev, used: Math.min(prev.used + 1, prev.limit) });
     } catch (err) {
       const serverMessage = err?.response?.data?.message;
       setError(serverMessage || "Couldn't get a response right now. Please try again.");
@@ -55,6 +68,13 @@ export default function Assistant() {
       <div className="mb-4">
         <h1 className="text-3xl font-bold text-gray-800">Assistant</h1>
         <p className="text-gray-600 mt-1">Ask questions about your spending from the last 6 months.</p>
+        {chatUsage && (
+          <p className="text-gray-400 text-xs mt-1">
+            {chatExhausted
+              ? `You've used all ${chatUsage.limit} messages for today — resets tomorrow.`
+              : `${chatUsage.limit - chatUsage.used} of ${chatUsage.limit} messages left today`}
+          </p>
+        )}
       </div>
 
       <div className="flex-1 bg-white rounded-2xl shadow-lg overflow-y-auto p-4 sm:p-6 space-y-4">
@@ -67,7 +87,8 @@ export default function Assistant() {
                 <button
                   key={s}
                   onClick={() => send(s)}
-                  className="text-left text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg px-4 py-2 transition-colors"
+                  disabled={chatExhausted}
+                  className="text-left text-sm bg-indigo-50 hover:bg-indigo-100 disabled:opacity-40 disabled:hover:bg-indigo-50 text-indigo-700 rounded-lg px-4 py-2 transition-colors"
                 >
                   {s}
                 </button>
@@ -109,14 +130,14 @@ export default function Assistant() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about your spending..."
+          placeholder={chatExhausted ? "Daily message limit reached" : "Ask about your spending..."}
           className="flex-1 px-3 py-2 bg-transparent focus:outline-none text-gray-800"
-          disabled={sending}
+          disabled={sending || chatExhausted}
           maxLength={CHAT_MAX_MESSAGE_LENGTH}
         />
         <button
           type="submit"
-          disabled={sending || !input.trim()}
+          disabled={sending || chatExhausted || !input.trim()}
           className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white p-3 rounded-lg transition-colors"
         >
           <FaPaperPlane />

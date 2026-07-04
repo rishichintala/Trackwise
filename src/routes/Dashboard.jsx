@@ -1,5 +1,5 @@
 // src/pages/Dashboard.jsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { Link } from "react-router-dom";
@@ -40,6 +40,7 @@ export default function Dashboard() {
     expensesThisMonth,
     totalThisMonth,
     getInsights,
+    getAiUsage,
   } = useData();
   const { currencySymbol } = useCurrency();
 
@@ -49,9 +50,19 @@ export default function Dashboard() {
   const [loadingMonths, setLoadingMonths] = useState({});
   const [errorsByMonth, setErrorsByMonth] = useState({});
 
+  // Daily insight quota — fetched once so the user can see how many
+  // generations they have left before they hit the limit, rather than
+  // finding out only after a surprise 429.
+  const [insightsUsage, setInsightsUsage] = useState(null);
+  useEffect(() => {
+    getAiUsage().then(u => setInsightsUsage(u.insights)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const insight = insightsByMonth[selectedMonth] || null;
   const insightLoading = loadingMonths[selectedMonth] || false;
   const insightError = errorsByMonth[selectedMonth] || null;
+  const insightsExhausted = insightsUsage && insightsUsage.used >= insightsUsage.limit;
 
   const handleGenerateInsights = async () => {
     const targetMonth = selectedMonth;
@@ -60,6 +71,9 @@ export default function Dashboard() {
     try {
       const text = await getInsights(targetMonth);
       setInsightsByMonth(prev => ({ ...prev, [targetMonth]: text }));
+      // Mirrors the backend: a successful call consumed one of today's
+      // attempts, a failed one doesn't (it's refunded server-side).
+      setInsightsUsage(prev => prev && { ...prev, used: Math.min(prev.used + 1, prev.limit) });
     } catch (err) {
       const serverMessage = err?.response?.data?.message;
       const fallback = "Couldn't generate insights right now. Please try again.";
@@ -191,11 +205,18 @@ export default function Dashboard() {
             <div>
               <h2 className="text-lg font-semibold text-gray-800">AI Spending Insights</h2>
               <p className="text-gray-500 text-sm">Get an AI-generated summary of your {displayMonthName} spending.</p>
+              {insightsUsage && (
+                <p className="text-gray-400 text-xs mt-1">
+                  {insightsExhausted
+                    ? `You've used all ${insightsUsage.limit} insight generations for today — resets tomorrow.`
+                    : `${insightsUsage.limit - insightsUsage.used} of ${insightsUsage.limit} generations left today`}
+                </p>
+              )}
             </div>
           </div>
           <button
             onClick={handleGenerateInsights}
-            disabled={insightLoading}
+            disabled={insightLoading || insightsExhausted}
             className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
           >
             {insightLoading && "Thinking..."}

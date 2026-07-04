@@ -8,5 +8,6 @@ router.use((req, res, next) => authMiddleware(req, res, next).catch(next));
 
 router.get('/insights', aiController.getInsights);
 router.post('/chat', aiController.chat);
+router.get('/ai-usage', aiController.getUsage);
 
 module.exports = router;

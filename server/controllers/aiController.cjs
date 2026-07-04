@@ -88,6 +88,24 @@ const refundDailyQuota = async (userId, field) => {
     }
 };
 
+// Lets the UI show remaining quota up front (e.g. "2 of 3 insights left
+// today") instead of only surfacing the cap as a surprise 429 after the user
+// has already tried to use it.
+const getUsage = async (req, res) => {
+    try {
+        const usage = await prisma.aiUsage.findUnique({
+            where: { userId_date: { userId: req.userId, date: todayUtc() } },
+        });
+        res.json({
+            insights: { used: usage?.insightsCount || 0, limit: DAILY_INSIGHTS_LIMIT },
+            chat: { used: usage?.chatCount || 0, limit: DAILY_CHAT_LIMIT },
+        });
+    } catch (error) {
+        console.error('Error fetching AI usage:', error?.message || error);
+        res.status(500).json({ message: 'Failed to fetch AI usage' });
+    }
+};
+
 const getInsights = async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({ message: 'Gemini API key is not configured on the server.' });
@@ -331,4 +349,4 @@ User: ${message}`;
     }
 };
 
-module.exports = { getInsights, chat };
+module.exports = { getInsights, chat, getUsage };

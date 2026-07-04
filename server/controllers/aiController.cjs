@@ -33,8 +33,24 @@ const sumByCategory = (expenses) => expenses.reduce((acc, e) => {
 const DAILY_INSIGHTS_LIMIT = 3;
 const DAILY_CHAT_LIMIT = 5;
 const CHAT_MAX_MESSAGE_LENGTH = 1000;
+// Same 1000-char ceiling applied to what comes back from Gemini, not just
+// what goes in. The hard guarantee is the character truncation below, applied
+// to the final text — NOT maxOutputTokens. gemini-2.5-flash spends an
+// unpredictable chunk of its output-token budget on internal "thinking"
+// before any visible text, and this SDK (the legacy @google/generative-ai
+// package) has no way to disable that; a tight maxOutputTokens (tested down
+// to 900) got cut off mid-thought with as little as 40-120 visible characters
+// — worse than no cap. 4096 was the smallest budget that reliably finished
+// with a real answer (finishReason "STOP") across repeated tests against
+// both prompts, so it's set generously high as a runaway-cost backstop only;
+// truncateResponse() is what actually enforces the 1000-char limit.
+const AI_RESPONSE_MAX_LENGTH = 1000;
+const AI_RESPONSE_MAX_OUTPUT_TOKENS = 4096;
 
 const todayUtc = () => new Date().toISOString().slice(0, 10);
+
+const truncateResponse = (text, max = AI_RESPONSE_MAX_LENGTH) =>
+    text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 
 // Not fully race-proof under concurrent requests (read-then-write), which is
 // an acceptable tradeoff here: the goal is deterring scripted abuse, not
@@ -168,9 +184,12 @@ Total spent this month: $${totalSpent.toFixed(2)}. ${totalTrendLine}
 Spending by category (status and trend already computed, just relay them):
 ${summaryLines}`;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            generationConfig: { maxOutputTokens: AI_RESPONSE_MAX_OUTPUT_TOKENS },
+        });
         const result = await model.generateContent(prompt);
-        const insights = result.response.text().trim();
+        const insights = truncateResponse(result.response.text().trim());
 
         res.json({ insights });
     } catch (error) {
@@ -275,9 +294,12 @@ ${itemizedLines || 'No expenses recorded in this window.'}
 ${historyText ? `Recent conversation:\n${historyText}\n` : ''}
 User: ${message}`;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            generationConfig: { maxOutputTokens: AI_RESPONSE_MAX_OUTPUT_TOKENS },
+        });
         const result = await model.generateContent(prompt);
-        const reply = result.response.text().trim();
+        const reply = truncateResponse(result.response.text().trim());
 
         res.json({ reply });
     } catch (error) {

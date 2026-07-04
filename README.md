@@ -38,7 +38,7 @@ Trackwise is a high-performance, full-stack budget management application design
 - **AI Spending Insights** (Dashboard) — a one-click, AI-generated summary of the selected month's spending: biggest category, month-over-month trend per category, and any category that's over or near its budget. Budget status and trend percentages are computed in code and handed to the model as facts rather than left for it to calculate, so the numbers stay accurate.
 - **Assistant** (`/assistant`) — a chat interface for free-form questions about your spending over the trailing 6 months (e.g. *"How much did I spend on Dining last month?"*, *"Which category has grown the most?"*, *"What was my biggest single purchase?"*). Answers are grounded strictly in your own aggregated and itemized transaction data; questions outside that 6-month window get an honest "I don't have that data" instead of a guess.
 - Both features are powered by the Gemini API (`gemini-2.5-flash`) and require a `GEMINI_API_KEY` — see [Local Development](#local-development) and [Deployment](#deployment-netlify) below.
-- **Usage limits:** since this repo is public and registration has no verification step, each user gets **3 insight generations and 5 assistant messages per day**, tracked server-side (`AiUsage` table) and refunded automatically if a call fails before completing. Chat messages and AI responses are also capped at 1,000 characters. The UI shows remaining quota up front (e.g. "2 of 3 left today") and disables the relevant button once exhausted, rather than surfacing the cap only as a surprise error.
+- **Usage limits:** Since this repo is public and registration has no verification step, each user gets **3 insight generations and 5 assistant messages per day**, tracked server-side (`AiUsage` table) and refunded automatically if a call fails before completing. Chat messages and AI responses are also capped at 1,000 characters. The UI shows remaining quota up front (e.g. "2 of 3 left today") and disables the relevant button once exhausted, rather than surfacing the cap only as a surprise error.
 
 ### Authentication & Security
 - Email + password sign-up and login
@@ -189,7 +189,7 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 | `ApiKey` | Integration keys — stores label, SHA-256 hash, `userId`, `createdAt` |
 | `Expense` | amount, category, date, description, `userId` |
 | `Budget` | monthly limit per category, `userId` |
-| `AiUsage` | daily insights/chat call counts per user, used to enforce the AI usage limits above |
+| `AiUsage` | `userId`, `date`, `insightsCount`, `chatCount` — daily per-user call counts, used to enforce the AI usage limits above |
 
 ---
 

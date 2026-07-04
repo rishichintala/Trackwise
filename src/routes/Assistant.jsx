@@ -39,7 +39,7 @@ export default function Assistant() {
       const reply = await askAssistant(question, history);
       setMessages(m => [...m, { role: "assistant", content: reply }]);
     } catch (err) {
-      const serverMessage = err.response?.data?.message;
+      const serverMessage = err?.response?.data?.message;
       setError(serverMessage || "Couldn't get a response right now. Please try again.");
       // Drop the optimistically-added message so a failed turn doesn't leave a
       // dangling unanswered question in state (or in history sent next request).

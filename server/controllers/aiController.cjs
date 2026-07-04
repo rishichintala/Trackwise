@@ -49,8 +49,10 @@ const AI_RESPONSE_MAX_OUTPUT_TOKENS = 4096;
 
 const todayUtc = () => new Date().toISOString().slice(0, 10);
 
-const truncateResponse = (text, max = AI_RESPONSE_MAX_LENGTH) =>
-    text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+const truncateResponse = (text, max = AI_RESPONSE_MAX_LENGTH) => {
+    const str = typeof text === 'string' ? text : '';
+    return str.length > max ? `${str.slice(0, max - 1).trimEnd()}…` : str;
+};
 
 // Not fully race-proof under concurrent requests (read-then-write), which is
 // an acceptable tradeoff here: the goal is deterring scripted abuse, not
@@ -71,6 +73,21 @@ const consumeDailyQuota = async (userId, field, limit) => {
     return true;
 };
 
+// Called when a quota-consuming request fails after the quota was already
+// taken, so a Gemini/network failure doesn't cost the user one of their
+// limited daily attempts. Best-effort: if the refund itself fails, log and
+// move on rather than letting a bookkeeping error mask the original failure.
+const refundDailyQuota = async (userId, field) => {
+    try {
+        await prisma.aiUsage.update({
+            where: { userId_date: { userId, date: todayUtc() } },
+            data: { [field]: { decrement: 1 } },
+        });
+    } catch (err) {
+        console.error('Failed to refund daily quota:', err?.message || err);
+    }
+};
+
 const getInsights = async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({ message: 'Gemini API key is not configured on the server.' });
@@ -83,6 +100,7 @@ const getInsights = async (req, res) => {
     const { start: startDate, end: endDate } = monthToUtcRange(month);
     const { start: prevStartDate, end: prevEndDate } = monthToUtcRange(prevMonth);
 
+    let quotaConsumed = false;
     try {
         const [expenses, prevExpenses, budgets, income] = await Promise.all([
             prisma.expense.findMany({
@@ -103,6 +121,7 @@ const getInsights = async (req, res) => {
         if (!allowed) {
             return res.status(429).json({ message: `You've reached today's limit of ${DAILY_INSIGHTS_LIMIT} AI insight generations. Try again tomorrow.` });
         }
+        quotaConsumed = true;
 
         const spentByCategory = sumByCategory(expenses);
         const prevSpentByCategory = sumByCategory(prevExpenses);
@@ -193,6 +212,7 @@ ${summaryLines}`;
 
         res.json({ insights });
     } catch (error) {
+        if (quotaConsumed) await refundDailyQuota(req.userId, 'insightsCount');
         console.error('Error generating insights:', error?.message || error);
         res.status(500).json({ message: 'Failed to generate insights' });
     }
@@ -221,11 +241,13 @@ const chat = async (req, res) => {
     const { start: windowStart } = monthToUtcRange(oldestMonth);
     const { end: windowEnd } = monthToUtcRange(currentMonth);
 
+    let quotaConsumed = false;
     try {
         const allowed = await consumeDailyQuota(req.userId, 'chatCount', DAILY_CHAT_LIMIT);
         if (!allowed) {
             return res.status(429).json({ message: `You've reached today's limit of ${DAILY_CHAT_LIMIT} assistant messages. Try again tomorrow.` });
         }
+        quotaConsumed = true;
 
         const [expenses, budgets, incomes] = await Promise.all([
             prisma.expense.findMany({
@@ -303,6 +325,7 @@ User: ${message}`;
 
         res.json({ reply });
     } catch (error) {
+        if (quotaConsumed) await refundDailyQuota(req.userId, 'chatCount');
         console.error('Error in AI chat:', error?.message || error);
         res.status(500).json({ message: 'Failed to get a response' });
     }

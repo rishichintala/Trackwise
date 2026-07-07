@@ -216,10 +216,4 @@ server/
 
 ---
 
-## Support & Contribution
-
-Trackwise is an ongoing project. If you find it useful:
-- Star the repo on GitHub
-- Report bugs or suggest features via Issues
-
 Built with ❤️ by **Sai Rishith Chintala** and **Kavya Vemuri**.
